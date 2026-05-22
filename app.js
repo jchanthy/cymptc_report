@@ -33,7 +33,11 @@ const MEMBER_NAMES = [
 // App State & Data
 let appConfig = {
   defaultName: "",
-  theme: "dark"
+  theme: "dark",
+  scraperEngine: "apify",
+  apifyToken: "",
+  apifyActorId: "",
+  selfHostedUrl: "http://localhost:3000"
 };
 
 let reportHistory = [];
@@ -103,6 +107,8 @@ function loadSettings() {
   if (saved) {
     appConfig = JSON.parse(saved);
     if (!appConfig.theme) appConfig.theme = "dark";
+    if (!appConfig.scraperEngine) appConfig.scraperEngine = "apify";
+    if (!appConfig.selfHostedUrl) appConfig.selfHostedUrl = "http://localhost:3000";
     
     // Apply theme
     document.documentElement.setAttribute("data-theme", appConfig.theme);
@@ -120,9 +126,17 @@ function loadSettings() {
         document.getElementById("default-member-name").value = chanthyOption;
       }
     }
+    
+    // Load scraper configurations
+    document.getElementById("scraper-engine").value = appConfig.scraperEngine || "apify";
+    document.getElementById("apify-token").value = appConfig.apifyToken || "";
+    document.getElementById("apify-actor-id").value = appConfig.apifyActorId || "";
+    document.getElementById("self-hosted-url").value = appConfig.selfHostedUrl || "http://localhost:3000";
   } else {
     // Default theme setup
     appConfig.theme = "dark";
+    appConfig.scraperEngine = "apify";
+    appConfig.selfHostedUrl = "http://localhost:3000";
     document.documentElement.setAttribute("data-theme", "dark");
     document.getElementById("app-theme").value = "dark";
     
@@ -132,7 +146,14 @@ function loadSettings() {
       document.getElementById("reporter-name").value = chanthyOption;
       document.getElementById("default-member-name").value = chanthyOption;
     }
+    
+    document.getElementById("scraper-engine").value = "apify";
+    document.getElementById("apify-token").value = "";
+    document.getElementById("apify-actor-id").value = "apify/facebook-posts-scraper";
+    document.getElementById("self-hosted-url").value = "http://localhost:3000";
   }
+  
+  toggleScraperEngineFields();
 }
 
 // Save Settings to LocalStorage
@@ -141,6 +162,10 @@ function saveSettings(event) {
   
   appConfig.defaultName = document.getElementById("default-member-name").value;
   appConfig.theme = document.getElementById("app-theme").value;
+  appConfig.scraperEngine = document.getElementById("scraper-engine").value;
+  appConfig.apifyToken = document.getElementById("apify-token").value.trim();
+  appConfig.apifyActorId = document.getElementById("apify-actor-id").value.trim() || "apify/facebook-posts-scraper";
+  appConfig.selfHostedUrl = document.getElementById("self-hosted-url").value.trim() || "http://localhost:3000";
   
   localStorage.setItem("ycpp_helper_config", JSON.stringify(appConfig));
   
@@ -156,6 +181,21 @@ function saveSettings(event) {
   closeSettings();
   updateLivePreview();
   renderAnalyticsChart();
+}
+
+// Toggle Scraper engine configuration fields dynamically
+function toggleScraperEngineFields() {
+  const engine = document.getElementById("scraper-engine").value;
+  const apifyFields = document.getElementById("apify-engine-fields");
+  const selfHostedFields = document.getElementById("self-hosted-engine-fields");
+  
+  if (engine === "self-hosted") {
+    apifyFields.style.display = "none";
+    selfHostedFields.style.display = "flex";
+  } else {
+    apifyFields.style.display = "flex";
+    selfHostedFields.style.display = "none";
+  }
 }
 
 // Setup Settings Modal Actions
@@ -194,6 +234,12 @@ function setupEventListeners() {
       document.documentElement.setAttribute("data-theme", selectedTheme);
       renderAnalyticsChart();
     });
+  }
+  
+  // Change scraper engine fields instantly on selection change
+  const scraperEngineSelect = document.getElementById("scraper-engine");
+  if (scraperEngineSelect) {
+    scraperEngineSelect.addEventListener("change", toggleScraperEngineFields);
   }
   
   // Close modal when clicking outside content
@@ -823,6 +869,213 @@ function renderAnalyticsChart() {
   });
 }
 
+// Scrape Facebook Post metrics using Apify API
+// Scrape Facebook Post metrics using Apify API or Self-Hosted Scraper
+async function scrapeFacebookPost() {
+  const urlInput = document.getElementById("fb-post-url");
+  const url = urlInput.value.trim();
+  const targetCategory = document.getElementById("fb-target-category").value;
+  const scrapeBtn = document.getElementById("scrape-fb-btn");
+  
+  if (!url) {
+    showToast("⚠️ សូមបិទភ្ជាប់តំណភ្ជាប់ (URL) ហ្វេសប៊ុកជាមុនសិន!", "error");
+    urlInput.focus();
+    return;
+  }
+  
+  // Simple validation to ensure it looks like a FB url
+  if (!url.includes("facebook.com") && !url.includes("fb.watch") && !url.includes("fb.com")) {
+    showToast("⚠️ តំណភ្ជាប់នេះមិនមែនជា Facebook URL ឡើយ!", "error");
+    return;
+  }
+
+  const engine = appConfig.scraperEngine || "apify";
+  const apifyToken = appConfig.apifyToken || "";
+  const apifyActorId = appConfig.apifyActorId || "apify/facebook-posts-scraper";
+  const selfHostedUrl = appConfig.selfHostedUrl || "http://localhost:3000";
+
+  // Visual loading feedback
+  const originalBtnHTML = scrapeBtn.innerHTML;
+  scrapeBtn.disabled = true;
+  scrapeBtn.innerHTML = `<span>⏳</span> កំពុងទាញយក...`;
+  urlInput.disabled = true;
+
+  // 1. SELF-HOSTED ENGINE PIPELINE
+  if (engine === "self-hosted") {
+    showToast("🚀 កំពុងភ្ជាប់ទៅកាន់ Self-Hosted Scraper Service...", "info");
+    
+    try {
+      const response = await fetch(`${selfHostedUrl}/api/scrape`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ url })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP error! code: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data.success) {
+        throw new Error(data.error || "ការទាញយកទិន្នន័យបរាជ័យ។");
+      }
+
+      const { likes, comments, shares } = data;
+      applyScrapedData(targetCategory, likes, comments, shares);
+      
+      showToast("⚡ ទាញយកជោគជ័យ (Self-Hosted)៖ Likes: " + likes + ", Comments: " + comments + ", Shares: " + shares, "success");
+
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 60,
+          origin: { y: 0.8 }
+        });
+      }
+
+      urlInput.value = ""; // clear URL input on success
+
+    } catch (error) {
+      console.error("Self-hosted scraping call failed:", error);
+      showToast("❌ ការទាញយកបរាជ័យ៖ " + error.message + " (សូមប្រាកដថា Scraper Server កំពុងរត់)", "error");
+    } finally {
+      scrapeBtn.disabled = false;
+      scrapeBtn.innerHTML = originalBtnHTML;
+      urlInput.disabled = false;
+    }
+    return;
+  }
+
+  // 2. APIFY ENGINE PIPELINE
+  // If no Token is configured, fallback to Mock scraper for a rich interactive demonstration
+  if (!apifyToken) {
+    showToast("ℹ️ កំពុងដំណើរការជាមួយទិន្នន័យសាកល្បង (Mock Scraper)...", "info");
+    
+    setTimeout(() => {
+      const mockLikes = Math.floor(Math.random() * 45) + 15;
+      const mockComments = Math.floor(Math.random() * 12) + 3;
+      const mockShares = Math.floor(Math.random() * 8) + 1;
+      
+      applyScrapedData(targetCategory, mockLikes, mockComments, mockShares);
+      
+      scrapeBtn.disabled = false;
+      scrapeBtn.innerHTML = originalBtnHTML;
+      urlInput.disabled = false;
+      urlInput.value = ""; // clear input
+      
+      showToast("⚡ ទាញយកសាកល្បងជោគជ័យ៖ Likes: " + mockLikes + ", Comments: " + mockComments + ", Shares: " + mockShares, "success");
+      
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 50,
+          spread: 40,
+          origin: { y: 0.8 }
+        });
+      }
+    }, 1500);
+    return;
+  }
+
+  // Real Apify API Call!
+  showToast("🚀 កំពុងភ្ជាប់ទៅកាន់ Apify Scraper Engine...", "info");
+  
+  // Normalize actor ID (replace slash with tilde)
+  const normalizedActor = apifyActorId.replace(/\//g, '~');
+  const apifyUrl = `https://api.apify.com/v2/acts/${normalizedActor}/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`;
+  
+  const inputBody = {
+    "startUrls": [{ "url": url }],
+    "resultsLimit": 1
+  };
+
+  try {
+    const response = await fetch(apifyUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(inputBody)
+    });
+
+    if (!response.ok) {
+      if (response.status === 408) {
+        throw new Error("ការស្នើសុំលើសកំណត់ពេលវេលា (Timeout 120s)។");
+      }
+      const errData = await response.json().catch(() => ({}));
+      throw new Error(errData.error?.message || `HTTP error! code: ${response.status}`);
+    }
+
+    const items = await response.json();
+    console.log("Scraped FB items:", items);
+
+    if (!items || items.length === 0) {
+      throw new Error("មិនទាន់រកឃើញទិន្នន័យពី URL នេះឡើយ។ សូមប្រាកដថា Post នេះជាសាធារណៈ (Public)។");
+    }
+
+    const item = items[0];
+    
+    // Support multiple popular Facebook scrapers in Apify store by matching different keys
+    const likes = item.likesCount ?? item.likes ?? item.reactionsCount ?? item.reactionCount ?? 0;
+    const comments = item.commentsCount ?? item.comments ?? 0;
+    let shares = item.sharesCount ?? item.shares ?? 0;
+    if (typeof shares === 'object' && shares !== null) {
+      shares = shares.count ?? 0;
+    }
+
+    applyScrapedData(targetCategory, likes, comments, shares);
+
+    showToast("⚡ ទាញយកទិន្នន័យជោគជ័យ! Likes: " + likes + ", Comments: " + comments + ", Shares: " + shares, "success");
+
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 100,
+        spread: 60,
+        origin: { y: 0.8 }
+      });
+    }
+
+    urlInput.value = ""; // clear URL input on success
+
+  } catch (error) {
+    console.error("Facebook scraping call failed:", error);
+    showToast("❌ ការទាញយកបរាជ័យ៖ " + error.message, "error");
+  } finally {
+    scrapeBtn.disabled = false;
+    scrapeBtn.innerHTML = originalBtnHTML;
+    urlInput.disabled = false;
+  }
+}
+
+// Map parsed statistics to the target form fields
+function applyScrapedData(category, likes, comments, shares) {
+  if (category === "dissemination") {
+    document.getElementById("dissem_like").value = likes;
+    document.getElementById("dissem_comment").value = comments;
+    document.getElementById("dissem_share").value = shares;
+    // Auto increment post count if 0
+    const postEl = document.getElementById("post_count");
+    if (parseInt(postEl.value) === 0) postEl.value = 1;
+  } else if (category === "support") {
+    document.getElementById("support_like").value = likes;
+    document.getElementById("support_comment").value = comments;
+    document.getElementById("support_share").value = shares;
+  } else if (category === "counterattack") {
+    document.getElementById("counter_like").value = likes;
+    document.getElementById("counter_comment").value = comments;
+    // Facebook has no reports count, we leave reports at its current value
+  } else if (category === "leader") {
+    document.getElementById("leader_like").value = likes;
+    document.getElementById("leader_comment").value = comments;
+    document.getElementById("leader_share").value = shares;
+  }
+  
+  // Update live preview representation instantly
+  updateLivePreview();
+}
+
 // Render build number and short git hash in footer
 function renderBuildInfo() {
   const buildInfoEl = document.getElementById("build-info");
@@ -842,3 +1095,6 @@ window.submitTelegram = submitTelegram;
 window.closeSettings = closeSettings;
 window.deleteHistoryItem = deleteHistoryItem;
 window.saveSettings = saveSettings;
+window.scrapeFacebookPost = scrapeFacebookPost;
+window.toggleScraperEngineFields = toggleScraperEngineFields;
+

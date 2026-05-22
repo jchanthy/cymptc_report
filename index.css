@@ -719,3 +719,25 @@ tr:hover td {
   transition: var(--transition-smooth);
 }
 
+/* Facebook Scraper Specific Premium Touches */
+.fb-scraper-group:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: var(--color-primary) !important;
+}
+
+[data-theme="light"] .fb-scraper-group {
+  background: rgba(0, 0, 0, 0.015) !important;
+}
+
+[data-theme="light"] .fb-scraper-group:hover {
+  background: rgba(0, 0, 0, 0.03) !important;
+}
+
+.advanced-settings-details summary:hover {
+  color: var(--color-primary-hover) !important;
+}
+
+.advanced-settings-details[open] {
+  padding-bottom: 0.5rem;
+}
+

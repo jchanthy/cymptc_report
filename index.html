@@ -87,6 +87,35 @@
                 </div>
               </div>
 
+              <!-- Facebook Link Scraper Group -->
+              <div class="form-group fb-scraper-group" style="margin-bottom: 2rem; padding: 1.25rem; background: rgba(255, 255, 255, 0.02); border: 1px dashed var(--border-glass); border-radius: var(--radius-md); transition: var(--transition-smooth);">
+                <label for="fb-post-url" style="color: var(--color-primary); font-weight: 600; display: flex; align-items: center; gap: 0.4rem;">
+                  <span>🤖</span> ទាញយកទិន្នន័យស្វ័យប្រវត្តពី Facebook URL
+                </label>
+                
+                <div class="fb-controls-grid" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0.5rem; margin-top: 0.6rem;">
+                  <div class="select-wrapper">
+                    <select id="fb-target-category">
+                      <option value="dissemination">២. ផ្សព្វផ្សាយ (Dissemination)</option>
+                      <option value="support" selected>៣. គាំទ្រ (Support)</option>
+                      <option value="counterattack">៤. វាយបក (Counterattack)</option>
+                      <option value="leader">៥. គាំទ្រថ្នាក់ដឹកនាំ (Leader Support)</option>
+                    </select>
+                  </div>
+                  <button type="button" class="btn btn-accent" id="scrape-fb-btn" onclick="scrapeFacebookPost()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-family: var(--font-kh); font-weight: 500;">
+                    <span>🔍</span> ទាញយកទិន្នន័យ
+                  </button>
+                </div>
+                
+                <div style="margin-top: 0.6rem;">
+                  <input type="text" id="fb-post-url" placeholder="បិទភ្ជាប់តំណភ្ជាប់ហ្វេសប៊ុកនៅទីនេះ... (Paste Facebook URL)" style="font-size: 0.85rem; padding: 0.7rem 1rem;">
+                </div>
+                
+                <small style="color: var(--text-muted); font-size: 0.72rem; margin-top: 6px; display: block; line-height: 1.4;">
+                  បិទភ្ជាប់តំណភ្ជាប់ (URL) ហ្វេសប៊ុក និងជ្រើសរើសប្រភេទការងារ ដើម្បីទាញយកចំនួន Likes, Comments, Shares ដោយស្វ័យប្រវត្ត។ (គាំទ្រទាំងម៉ាស៊ីន Apify Cloud និង Self-Hosted Local Server)
+                </small>
+              </div>
+
               <!-- Categories Inputs Grid -->
               <div class="categories-grid">
                 
@@ -366,7 +395,7 @@
             <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីអោយកម្មវិធីបំពេញដោយស្វ័យប្រវត្តិនាលើកក្រោយ។</small>
           </div>
 
-          <div class="form-group" style="margin-bottom: 2rem;">
+          <div class="form-group" style="margin-bottom: 1.5rem;">
             <label for="app-theme">🎨 ស្បែកកម្មវិធី (App Theme)</label>
             <div class="select-wrapper">
               <select id="app-theme">
@@ -376,6 +405,58 @@
             </div>
             <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសស្បែកកម្មវិធី (ងងឹត ឬភ្លឺ) ដែលអ្នកចង់បាន។</small>
           </div>
+
+          <!-- Advanced Collapsible Facebook Scraper Settings -->
+          <details class="advanced-settings-details" style="margin-bottom: 2rem; border-top: 1px dashed var(--border-glass); padding-top: 1rem;">
+            <summary style="font-family: var(--font-kh); font-size: 0.85rem; color: var(--color-accent); cursor: pointer; user-select: none; outline: none; display: flex; align-items: center; gap: 0.3rem; font-weight: 600;">
+              ⚙️ កម្រិតខ្ពស់៖ Facebook Scraper (Apify / Self-Hosted)
+            </summary>
+            
+            <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+              
+              <!-- Scraper Engine Selection Dropdown -->
+              <div class="form-group" style="margin-bottom: 0;">
+                <label for="scraper-engine" style="font-size: 0.8rem;">ប្រភពទាញយកទិន្នន័យ (Scraper Engine)</label>
+                <div class="select-wrapper">
+                  <select id="scraper-engine">
+                    <option value="apify">☁️ Apify Cloud API</option>
+                    <option value="self-hosted">🖥️ Self-Hosted Server (Local/VPS)</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Apify Fields Container -->
+              <div id="apify-engine-fields" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="apify-token" style="font-size: 0.8rem;">Apify API Token (Optional)</label>
+                  <input type="password" id="apify-token" placeholder="ឧ. apf_v8XhW92..." style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                  <small style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px; display: block; line-height: 1.3;">
+                    រកបាននៅក្នុង Apify Console -> Integrations។ រក្សាទុកតែនៅក្នុង LocalStorage នៃ Browser របស់អ្នកប៉ុណ្ណោះ (មិនផ្ទុកឡើងលើ Git ឡើយ)។
+                  </small>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="apify-actor-id" style="font-size: 0.8rem;">Apify Actor ID (Optional)</label>
+                  <input type="text" id="apify-actor-id" placeholder="apify/facebook-posts-scraper" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                  <small style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px; display: block; line-height: 1.3;">
+                    លំនាំដើម៖ `apify/facebook-posts-scraper`
+                  </small>
+                </div>
+              </div>
+
+              <!-- Self-Hosted Fields Container -->
+              <div id="self-hosted-engine-fields" style="display: flex; flex-direction: column; gap: 1rem; display: none;">
+                <div class="form-group" style="margin-bottom: 0;">
+                  <label for="self-hosted-url" style="font-size: 0.8rem;">Self-Hosted API URL</label>
+                  <input type="text" id="self-hosted-url" placeholder="http://localhost:3000" style="font-size: 0.85rem; padding: 0.6rem 0.8rem;">
+                  <small style="color: var(--text-muted); font-size: 0.7rem; margin-top: 4px; display: block; line-height: 1.3;">
+                    អាសយដ្ឋាន endpoint នៃ scraper server របស់អ្នក។ លំនាំដើម៖ `http://localhost:3000`
+                  </small>
+                </div>
+              </div>
+
+            </div>
+          </details>
 
           <div class="action-row">
             <button type="button" class="btn btn-secondary" onclick="closeSettings()" style="flex: 1;">បោះបង់</button>
