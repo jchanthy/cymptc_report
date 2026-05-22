@@ -349,7 +349,7 @@
     <div class="modal-overlay" id="settings-modal">
       <div class="modal-content">
         <div class="modal-header">
-          <h3>⚙️ ការកំណត់គណនី និងតេឡេក្រាម</h3>
+          <h3>⚙️ ការកំណត់កម្មវិធី</h3>
           <button class="close-btn" onclick="closeSettings()">&times;</button>
         </div>
         
@@ -366,7 +366,7 @@
             <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីអោយកម្មវិធីបំពេញដោយស្វ័យប្រវត្តិនាលើកក្រោយ។</small>
           </div>
 
-          <div class="form-group">
+          <div class="form-group" style="margin-bottom: 2rem;">
             <label for="app-theme">🎨 ស្បែកកម្មវិធី (App Theme)</label>
             <div class="select-wrapper">
               <select id="app-theme">
@@ -377,19 +377,7 @@
             <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសស្បែកកម្មវិធី (ងងឹត ឬភ្លឺ) ដែលអ្នកចង់បាន។</small>
           </div>
 
-          <div class="form-group">
-            <label for="tg-bot-token">Telegram Bot Token (Optional)</label>
-            <input type="text" id="tg-bot-token" placeholder="ឧ. 123456789:ABCdefGhIJKlmNoPQRsT...">
-            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Bot នឹងប្រើដើម្បីផ្ញើសារស្វ័យប្រវត្តិ។ បង្កើត bot តាមរយៈ @BotFather។</small>
-          </div>
-
-          <div class="form-group">
-            <label for="tg-chat-id">Telegram Group Chat ID (Optional)</label>
-            <input type="text" id="tg-chat-id" placeholder="ឧ. -1001234567890">
-            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ID នៃក្រុមតេឡេក្រាមដែលចង់ផ្ញើរបាយការណ៍ទៅ។</small>
-          </div>
-
-          <div class="action-row" style="margin-top: 2rem;">
+          <div class="action-row">
             <button type="button" class="btn btn-secondary" onclick="closeSettings()" style="flex: 1;">បោះបង់</button>
             <button type="submit" class="btn btn-primary" style="flex: 1;">រក្សាទុកការកំណត់</button>
           </div>

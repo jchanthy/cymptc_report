@@ -33,8 +33,6 @@ const MEMBER_NAMES = [
 // App State & Data
 let appConfig = {
   defaultName: "",
-  botToken: "",
-  chatId: "",
   theme: "dark"
 };
 
@@ -122,9 +120,6 @@ function loadSettings() {
         document.getElementById("default-member-name").value = chanthyOption;
       }
     }
-    
-    document.getElementById("tg-bot-token").value = appConfig.botToken || "";
-    document.getElementById("tg-chat-id").value = appConfig.chatId || "";
   } else {
     // Default theme setup
     appConfig.theme = "dark";
@@ -145,8 +140,6 @@ function saveSettings(event) {
   event.preventDefault();
   
   appConfig.defaultName = document.getElementById("default-member-name").value;
-  appConfig.botToken = document.getElementById("tg-bot-token").value.trim();
-  appConfig.chatId = document.getElementById("tg-chat-id").value.trim();
   appConfig.theme = document.getElementById("app-theme").value;
   
   localStorage.setItem("ycpp_helper_config", JSON.stringify(appConfig));
@@ -534,7 +527,7 @@ function resetForm() {
   showToast("🔄 សម្អាតទម្រង់ប្រចាំថ្ងៃរួចរាល់!", "info");
 }
 
-// Submit via Telegram Bot or fallback link
+// Submit via Telegram: copies report and opens official sharing link
 function submitTelegram() {
   const name = document.getElementById("reporter-name").value;
   if (!name) {
@@ -543,57 +536,20 @@ function submitTelegram() {
     return;
   }
 
-  // Check if Bot details exist
-  if (appConfig.botToken && appConfig.chatId) {
-    const text = generateReportText();
-    const url = `https://api.telegram.org/bot${appConfig.botToken}/sendMessage`;
+  // Copy to clipboard AND open custom Telegram share link so user can select group
+  copyReportToClipboard();
+  
+  showToast("📋 បានចម្លងសារ! បើក Telegram ដើម្បីបញ្ជូនបន្ត...", "success");
+  
+  // Delay slightly to let the user read the toast
+  setTimeout(() => {
+    const plainText = document.getElementById("telegram-preview-text").innerText;
+    const tgUrl = `https://t.me/share/url?url=https://form.gov.kh/688c903ecfc1ef0012aac52b&text=${encodeURIComponent(plainText)}`;
+    window.open(tgUrl, "_blank");
     
-    showToast("📤 កំពុងបញ្ជូនទៅកាន់ Telegram Group...", "info");
-    
-    fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        chat_id: appConfig.chatId,
-        text: text,
-        parse_mode: "HTML"
-      })
-    })
-    .then(res => res.json())
-    .then(data => {
-      if (data.ok) {
-        showToast("🚀 បានផ្ញើរបាយការណ៍ទៅតេឡេក្រាមរួចរាល់!", "success");
-        saveReportToHistory();
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.7 }
-        });
-      } else {
-        throw new Error(data.description || "Unknown error");
-      }
-    })
-    .catch(err => {
-      showToast("❌ ការផ្ញើបរាជ័យ៖ " + err.message, "error");
-    });
-  } else {
-    // Fallback: copy to clipboard AND open custom Telegram share link so user can select group
-    copyReportToClipboard();
-    
-    showToast("📋 បានចម្លងសារ! បើក Telegram ដើម្បីបញ្ជូនបន្ត...", "success");
-    
-    // Delay slightly to let the user read the toast
-    setTimeout(() => {
-      const plainText = document.getElementById("telegram-preview-text").innerText;
-      const tgUrl = `https://t.me/share/url?url=https://form.gov.kh/688c903ecfc1ef0012aac52b&text=${encodeURIComponent(plainText)}`;
-      window.open(tgUrl, "_blank");
-      
-      // Also log to history manually since it was shared
-      saveReportToHistory();
-    }, 800);
-  }
+    // Also log to history manually since it was shared
+    saveReportToHistory();
+  }, 800);
 }
 
 // Save logged report to local history
