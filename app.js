@@ -34,7 +34,8 @@ const MEMBER_NAMES = [
 let appConfig = {
   defaultName: "",
   botToken: "",
-  chatId: ""
+  chatId: "",
+  theme: "dark"
 };
 
 let reportHistory = [];
@@ -49,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupEventListeners();
   updateLivePreview();
   renderAnalyticsChart();
+  renderBuildInfo();
 });
 
 // Setup official dropdowns
@@ -102,6 +104,11 @@ function loadSettings() {
   const saved = localStorage.getItem("ycpp_helper_config");
   if (saved) {
     appConfig = JSON.parse(saved);
+    if (!appConfig.theme) appConfig.theme = "dark";
+    
+    // Apply theme
+    document.documentElement.setAttribute("data-theme", appConfig.theme);
+    document.getElementById("app-theme").value = appConfig.theme;
     
     // Auto fill form and settings default values
     if (appConfig.defaultName) {
@@ -119,6 +126,11 @@ function loadSettings() {
     document.getElementById("tg-bot-token").value = appConfig.botToken || "";
     document.getElementById("tg-chat-id").value = appConfig.chatId || "";
   } else {
+    // Default theme setup
+    appConfig.theme = "dark";
+    document.documentElement.setAttribute("data-theme", "dark");
+    document.getElementById("app-theme").value = "dark";
+    
     // Perfect personalization: default name highlight to "5-ចន ចន្ធី" (likely the user Chanthy)
     const chanthyOption = MEMBER_NAMES.find(n => n.includes("ចន ចន្ធី"));
     if (chanthyOption) {
@@ -135,8 +147,12 @@ function saveSettings(event) {
   appConfig.defaultName = document.getElementById("default-member-name").value;
   appConfig.botToken = document.getElementById("tg-bot-token").value.trim();
   appConfig.chatId = document.getElementById("tg-chat-id").value.trim();
+  appConfig.theme = document.getElementById("app-theme").value;
   
   localStorage.setItem("ycpp_helper_config", JSON.stringify(appConfig));
+  
+  // Apply theme immediately
+  document.documentElement.setAttribute("data-theme", appConfig.theme);
   
   // Update form dropdown with new default if set
   if (appConfig.defaultName) {
@@ -146,6 +162,7 @@ function saveSettings(event) {
   showToast("⚙️ រក្សាទុកការកំណត់បានជោគជ័យ!", "success");
   closeSettings();
   updateLivePreview();
+  renderAnalyticsChart();
 }
 
 // Setup Settings Modal Actions
@@ -175,6 +192,16 @@ function setupEventListeners() {
     input.addEventListener('input', updateLivePreview);
     input.addEventListener('change', updateLivePreview);
   });
+  
+  // Change theme instantly on selection change
+  const themeSelect = document.getElementById("app-theme");
+  if (themeSelect) {
+    themeSelect.addEventListener("change", (e) => {
+      const selectedTheme = e.target.value;
+      document.documentElement.setAttribute("data-theme", selectedTheme);
+      renderAnalyticsChart();
+    });
+  }
   
   // Close modal when clicking outside content
   modal.addEventListener("click", (e) => {
@@ -752,6 +779,14 @@ function renderAnalyticsChart() {
     analyticsChart.destroy();
   }
   
+  // Dynamic labels and grid colors depending on light vs dark theme
+  const currentTheme = document.documentElement.getAttribute("data-theme") || "dark";
+  const isLight = currentTheme === "light";
+  
+  const textColor = isLight ? '#475569' : '#adb5bd';
+  const gridColor = isLight ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.03)';
+  const tickColor = isLight ? '#64748b' : '#6c757d';
+  
   analyticsChart = new Chart(ctx, {
     type: "line",
     data: {
@@ -797,7 +832,7 @@ function renderAnalyticsChart() {
       plugins: {
         legend: {
           labels: {
-            color: '#adb5bd',
+            color: textColor,
             font: {
               family: 'Outfit, Koh Santepheap'
             }
@@ -807,10 +842,10 @@ function renderAnalyticsChart() {
       scales: {
         x: {
           grid: {
-            color: "rgba(255,255,255,0.03)"
+            color: gridColor
           },
           ticks: {
-            color: '#6c757d',
+            color: tickColor,
             font: {
               family: 'Outfit'
             }
@@ -818,10 +853,10 @@ function renderAnalyticsChart() {
         },
         y: {
           grid: {
-            color: "rgba(255,255,255,0.03)"
+            color: gridColor
           },
           ticks: {
-            color: '#6c757d',
+            color: tickColor,
             font: {
               family: 'Outfit'
             }
@@ -830,6 +865,16 @@ function renderAnalyticsChart() {
       }
     }
   });
+}
+
+// Render build number and short git hash in footer
+function renderBuildInfo() {
+  const buildInfoEl = document.getElementById("build-info");
+  if (buildInfoEl) {
+    const buildNum = typeof __BUILD_NUMBER__ !== 'undefined' ? __BUILD_NUMBER__ : 'local';
+    const commit = typeof __COMMIT_HASH__ !== 'undefined' ? __COMMIT_HASH__ : 'dev';
+    buildInfoEl.textContent = `build ${buildNum} (${commit})`;
+  }
 }
 
 // Expose functions globally for HTML inline handlers (handles Vite ES Module scoping)

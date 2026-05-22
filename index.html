@@ -367,6 +367,17 @@
           </div>
 
           <div class="form-group">
+            <label for="app-theme">🎨 ស្បែកកម្មវិធី (App Theme)</label>
+            <div class="select-wrapper">
+              <select id="app-theme">
+                <option value="dark">🌙 ងងឹត (Dark Mode)</option>
+                <option value="light">☀️ ភ្លឺ (Light Mode)</option>
+              </select>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសស្បែកកម្មវិធី (ងងឹត ឬភ្លឺ) ដែលអ្នកចង់បាន។</small>
+          </div>
+
+          <div class="form-group">
             <label for="tg-bot-token">Telegram Bot Token (Optional)</label>
             <input type="text" id="tg-bot-token" placeholder="ឧ. 123456789:ABCdefGhIJKlmNoPQRsT...">
             <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Bot នឹងប្រើដើម្បីផ្ញើសារស្វ័យប្រវត្តិ។ បង្កើត bot តាមរយៈ @BotFather។</small>
@@ -392,6 +403,11 @@
       <span class="toast-icon">✅</span>
       <span class="toast-message">ចម្លងសារបានជោគជ័យ!</span>
     </div>
+
+    <!-- App Footer with Build Info -->
+    <footer class="app-footer">
+      <p>YCPP Daily Report Helper • <span id="build-info">build local (dev)</span></p>
+    </footer>
 
   </div>
 
