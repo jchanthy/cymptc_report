@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YCPP Daily Report Helper | ជំនួយការរបាយការណ៍ ក.ស.ព. ក្រសួងប្រៃសណីយ៍និងទូរគមនាគមន៍</title>
+  
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="កម្មវិធីជំនួយការរបាយការណ៍បូកសរុបព័ត៌មានប្រចាំថ្ងៃរបស់ក្រុមការងារសម្របសម្រួលព័ត៌មាននៃយុវជនគណបក្សប្រជាជនកម្ពុជា (ក.ស.ព.) ក្រសួងប្រៃសណីយ៍និងទូរគមនាគមន៍">
+  <meta name="author" content="MPTC YCPP Team">
+  <meta property="og:title" content="YCPP Daily Report Helper">
+  <meta property="og:description" content="កម្មវិធីជំនួយការរបាយការណ៍បូកសរុបព័ត៌មានប្រចាំថ្ងៃរបស់ក្រុមការងារ ក.ស.ព.">
+  
+  <!-- Styling -->
+  <link rel="stylesheet" href="index.css">
+  
+  <!-- External Libraries (Chart.js & Confetti for premium visual feedback) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Top Premium Header -->
+    <header>
+      <div class="brand-section">
+        <div class="logo-badge">🇰🇭</div>
+        <div class="brand-info">
+          <h1>របាយការណ៍បូកសរុបព័ត៌មានប្រចាំថ្ងៃ (ក.ស.ព.)</h1>
+          <p>MPTC Youth Council Program Helper</p>
+        </div>
+      </div>
+      
+      <div class="header-controls">
+        <div class="datetime-display">
+          <div class="time" id="live-time">12:00:00 PM</div>
+          <div class="date" id="live-date">Friday, May 22, 2026</div>
+        </div>
+        
+        <!-- Telegram Configuration Button -->
+        <button class="btn btn-secondary btn-icon" id="open-settings-btn" title="ការកំណត់តេឡេក្រាម និងគណនី">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Grid Content Area -->
+    <div class="grid-layout">
+      
+      <!-- Left Panel: Form Input & Navigation Tabs -->
+      <div class="left-panel">
+        
+        <!-- Tab Switching Header -->
+        <div class="nav-tabs">
+          <button class="tab-btn active" id="tab-form" onclick="switchTab('form')">បញ្ចូលរបាយការណ៍</button>
+          <button class="tab-btn" id="tab-analytics" onclick="switchTab('analytics')">ស្ថិតិ និងប្រវត្តិសរុប</button>
+        </div>
+
+        <!-- TAB 1: FORM SECTION -->
+        <div id="section-form-view" class="tab-content-wrapper">
+          <div class="glass-card">
+            <h2>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              ព័ត៌មានលម្អិតប្រចាំថ្ងៃ
+            </h2>
+            
+            <form id="report-form" onsubmit="event.preventDefault();">
+              
+              <!-- 1. Name Selection Dropdown -->
+              <div class="form-group">
+                <label for="reporter-name">១-ឈ្មោះសមាជិក (Dropdown ផ្លូវការ)</label>
+                <div class="select-wrapper">
+                  <select id="reporter-name" required>
+                    <option value="" disabled selected>--- សូមជ្រើសរើសឈ្មោះរបស់អ្នក ---</option>
+                    <!-- Dynamically filled by JavaScript, backup static option -->
+                  </select>
+                </div>
+              </div>
+
+              <!-- Categories Inputs Grid -->
+              <div class="categories-grid">
+                
+                <!-- Category 2: ផ្សព្វផ្សាយ -->
+                <div class="category-card" data-category="dissemination">
+                  <div class="category-title">
+                    <span>📢</span> ២. ផ្សព្វផ្សាយ (តំណភ្ជាប់)
+                  </div>
+                  
+                  <div class="counter-row">
+                    <span class="counter-label">Post</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('post_count', -1)">-</button>
+                      <input type="number" id="post_count" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('post_count', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Like</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_like', -1)">-</button>
+                      <input type="number" id="dissem_like" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_like', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Comment</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_comment', -1)">-</button>
+                      <input type="number" id="dissem_comment" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_comment', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Share</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_share', -1)">-</button>
+                      <input type="number" id="dissem_share" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('dissem_share', 1)">+</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Category 3: គាំទ្រ -->
+                <div class="category-card" data-category="support">
+                  <div class="category-title">
+                    <span>❤️</span> ៣. គាំទ្រ (តំណភ្ជាប់)
+                  </div>
+                  
+                  <div class="counter-row">
+                    <span class="counter-label">Like</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_like', -1)">-</button>
+                      <input type="number" id="support_like" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_like', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Comment</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_comment', -1)">-</button>
+                      <input type="number" id="support_comment" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_comment', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Share</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_share', -1)">-</button>
+                      <input type="number" id="support_share" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('support_share', 1)">+</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Category 4: វាយបក -->
+                <div class="category-card" data-category="counterattack">
+                  <div class="category-title">
+                    <span>⚔️</span> ៤. វាយបក (តំណភ្ជាប់)
+                  </div>
+                  
+                  <div class="counter-row">
+                    <span class="counter-label">Like</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_like', -1)">-</button>
+                      <input type="number" id="counter_like" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_like', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Comment</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_comment', -1)">-</button>
+                      <input type="number" id="counter_comment" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_comment', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Report</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_report', -1)">-</button>
+                      <input type="number" id="counter_report" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('counter_report', 1)">+</button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Category 5: គាំទ្រថ្នាក់ដឹកនាំ -->
+                <div class="category-card" data-category="leader-support">
+                  <div class="category-title">
+                    <span>👑</span> ៥. គាំទ្រថ្នាក់ដឹកនាំ
+                  </div>
+                  
+                  <div class="counter-row">
+                    <span class="counter-label">Like</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_like', -1)">-</button>
+                      <input type="number" id="leader_like" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_like', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Comment</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_comment', -1)">-</button>
+                      <input type="number" id="leader_comment" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_comment', 1)">+</button>
+                    </div>
+                  </div>
+
+                  <div class="counter-row">
+                    <span class="counter-label">Share</span>
+                    <div class="counter-controls">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_share', -1)">-</button>
+                      <input type="number" id="leader_share" class="counter-input" value="0" min="0">
+                      <button class="counter-btn" type="button" onclick="adjustCount('leader_share', 1)">+</button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Reset and Quick Settings -->
+              <div class="action-row">
+                <button type="button" class="btn btn-secondary" onclick="resetForm()" style="flex: 1;">
+                  <span>🔄</span> សម្អាតទម្រង់
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 2: ANALYTICS & HISTORY SECTION -->
+        <div id="section-analytics-view" class="tab-content-wrapper" style="display: none;">
+          <div class="glass-card" style="margin-bottom: 2rem;">
+            <h2>📈 ស្ថិតិនៃការងារសរុប (Analytics)</h2>
+            <div class="chart-container">
+              <canvas id="analyticsChart"></canvas>
+            </div>
+          </div>
+          
+          <div class="glass-card">
+            <h2>📜 ប្រវត្តិនៃការបញ្ជូនរបាយការណ៍ (History Logs)</h2>
+            <div class="table-container">
+              <table id="history-table">
+                <thead>
+                  <tr>
+                    <th>កាលបរិច្ឆេទ</th>
+                    <th>ផ្សព្វផ្សាយ (P/L/C/S)</th>
+                    <th>គាំទ្រ (L/C/S)</th>
+                    <th>វាយបក (L/C/R)</th>
+                    <th>គាំទ្រថ្នាក់ដឹកនាំ (L/C/S)</th>
+                    <th>សកម្មភាព</th>
+                  </tr>
+                </thead>
+                <tbody id="history-list">
+                  <!-- History rows will be populated here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Panel: Live Telegram Preview & Submissions -->
+      <div class="right-panel">
+        <div class="glass-card preview-card">
+          <h2>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+            </svg>
+            ការមើលជាមុន (Live Telegram Message)
+          </h2>
+          
+          <!-- Live Preview Textbox -->
+          <div class="preview-container" id="telegram-preview-text">
+            <!-- Formatted text will appear here automatically -->
+          </div>
+
+          <!-- Actions Group -->
+          <div class="action-row" style="flex-direction: column;">
+            
+            <button class="btn btn-primary" id="copy-preview-btn" onclick="copyReportToClipboard()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              ចម្លងសាររបាយការណ៍ (Copy)
+            </button>
+            
+            <button class="btn btn-accent" id="send-telegram-btn" onclick="submitTelegram()">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              បញ្ជូនសារទៅ Telegram Group
+            </button>
+
+            <a class="btn btn-secondary" id="open-formkh-btn" href="https://form.gov.kh/688c903ecfc1ef0012aac52b" target="_blank" rel="noopener noreferrer" style="text-decoration: none; text-align: center;">
+              <span>🌐</span> បើកទម្រង់ FormKH ផ្លូវការ
+            </a>
+
+            <!-- Premium Auto-Fill Bookmarklet Section -->
+            <div style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border-glass);">
+              <h4 style="font-family: var(--font-kh); font-size: 0.9rem; color: var(--color-primary); margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.4rem;">
+                <span>⚡</span> បំពេញទម្រង់ដោយស្វ័យប្រវត្តិ (Auto-Fill)
+              </h4>
+              <p style="font-family: var(--font-kh); font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4; margin-bottom: 0.75rem;">
+                អូសប៊ូតុងខាងក្រោមទៅដាក់លើ <b>Bookmarks Bar (របារសញ្ញាសម្គាល់)</b> នៃកម្មវិធីរុករករបស់អ្នក (Chrome / Edge)៖
+              </p>
+              
+              <a class="btn btn-secondary" id="bookmarklet-btn" href="javascript:void(0)" style="font-size: 0.8rem; padding: 0.6rem 1rem; width: 100%; border: 1px dashed var(--color-primary); cursor: grab; background: rgba(72, 202, 228, 0.05); display: flex; justify-content: center; align-items: center; gap: 0.4rem;" onclick="alert('សូមអូសប៊ូតុងនេះទៅដាក់លើ Bookmarks Bar របស់អ្នក! (Drag this button to your Bookmarks Bar)')">
+                🚀 <b>YCPP Auto-Fill</b>
+              </a>
+              
+              <ol style="font-family: var(--font-kh); font-size: 0.75rem; color: var(--text-muted); line-height: 1.4; margin-top: 0.75rem; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.3rem;">
+                <li>បំពេញតួលេខ និងឈ្មោះរបស់អ្នកក្នុងកម្មវិធីនេះ</li>
+                <li>ចុចប៊ូតុង <b>"បើកទម្រង់ FormKH ផ្លូវការ"</b> ខាងលើ</li>
+                <li>នៅពេលទំព័រ FormKH ដើរចប់ ចុចលើ Bookmark <b>"🚀 YCPP Auto-Fill"</b> ក្នុងរបារកម្មវិធីរុករករបស់អ្នក វានឹងបំពេញទិន្នន័យទាំងអស់ដោយស្វ័យប្រវត្តិ!</li>
+              </ol>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Configuration Modal Setup -->
+    <div class="modal-overlay" id="settings-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>⚙️ ការកំណត់គណនី និងតេឡេក្រាម</h3>
+          <button class="close-btn" onclick="closeSettings()">&times;</button>
+        </div>
+        
+        <form id="settings-form" onsubmit="saveSettings(event)">
+          
+          <div class="form-group">
+            <label for="default-member-name">ឈ្មោះលំនាំដើម (Default Member Name)</label>
+            <div class="select-wrapper">
+              <select id="default-member-name">
+                <option value="">--- គ្មានលំនាំដើម ---</option>
+                <!-- Loaded by JS -->
+              </select>
+            </div>
+            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ជ្រើសរើសឈ្មោះរបស់អ្នក ដើម្បីអោយកម្មវិធីបំពេញដោយស្វ័យប្រវត្តិនាលើកក្រោយ។</small>
+          </div>
+
+          <div class="form-group">
+            <label for="tg-bot-token">Telegram Bot Token (Optional)</label>
+            <input type="text" id="tg-bot-token" placeholder="ឧ. 123456789:ABCdefGhIJKlmNoPQRsT...">
+            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">Bot នឹងប្រើដើម្បីផ្ញើសារស្វ័យប្រវត្តិ។ បង្កើត bot តាមរយៈ @BotFather។</small>
+          </div>
+
+          <div class="form-group">
+            <label for="tg-chat-id">Telegram Group Chat ID (Optional)</label>
+            <input type="text" id="tg-chat-id" placeholder="ឧ. -1001234567890">
+            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">ID នៃក្រុមតេឡេក្រាមដែលចង់ផ្ញើរបាយការណ៍ទៅ។</small>
+          </div>
+
+          <div class="action-row" style="margin-top: 2rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeSettings()" style="flex: 1;">បោះបង់</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">រក្សាទុកការកំណត់</button>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+
+    <!-- UI Custom Toast Notifications -->
+    <div class="toast" id="app-toast">
+      <span class="toast-icon">✅</span>
+      <span class="toast-message">ចម្លងសារបានជោគជ័យ!</span>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
