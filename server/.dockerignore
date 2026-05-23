@@ -1,0 +1,6 @@
+node_modules
+npm-debug.log
+server_mobile_page.html
+server_page.html
+Dockerfile
+.dockerignore

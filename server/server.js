@@ -32,13 +32,15 @@ app.post('/api/scrape', async (req, res) => {
   let browser = null;
 
   try {
-    // Launch headless Chromium
+    // Launch headless Chromium optimized and verified for Linux container environments
     browser = await puppeteer.launch({
       headless: "new", // Run in headless mode
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
+        '--disable-gpu',
+        '--disable-features=IsolateOrigins,site-per-process',
         '--window-size=1280,800',
         '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
       ]
@@ -53,14 +55,16 @@ app.post('/api/scrape', async (req, res) => {
     });
 
     console.log('🌐 Opening Facebook post...');
-    await page.goto(url, { waitUntil: 'networkidle2', timeout: 45000 });
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 });
 
     // Wait a brief moment to let animations or dynamic updates render
     console.log('⏳ Page loaded. Parsing DOM metrics...');
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3000)));
 
+    const isVideo = url.includes('/watch') || url.includes('/videos') || url.includes('fb.watch') || url.includes('?v=') || url.includes('&v=');
+
     // Extract engagement stats using regular expressions & stable DOM selectors
-    const metrics = await page.evaluate(() => {
+    const metrics = await page.evaluate((isVideo) => {
       // 1. Convert Khmer digits to ASCII and clean up
       function parseNum(text) {
         if (!text) return 0;
@@ -229,6 +233,196 @@ app.post('/api/scrape', async (req, res) => {
         return uniqueSpans.map(s => s.val);
       }
 
+      // -------------------------------------------------------------
+      // EXPLICIT SEPARATION FOR FACEBOOK WATCH / VIDEO POST SCRAPING
+      // -------------------------------------------------------------
+      if (isVideo) {
+        let likes = 0;
+        let comments = 0;
+        let shares = 0;
+        let views = 0;
+
+        // 1. JSON-LD Schema Scraping (Primary precise metrics source)
+        try {
+          const jsonLdScripts = Array.from(document.querySelectorAll('script[type="application/ld+json"]'));
+          for (const script of jsonLdScripts) {
+            try {
+              const data = JSON.parse(script.textContent);
+              const objects = Array.isArray(data) ? data : [data];
+              for (const obj of objects) {
+                function findInteractionStatistics(item) {
+                  if (!item || typeof item !== 'object') return;
+                  
+                  if (item.interactionStatistic) {
+                    const stats = Array.isArray(item.interactionStatistic) 
+                      ? item.interactionStatistic 
+                      : [item.interactionStatistic];
+                    
+                    for (const stat of stats) {
+                      if (stat.interactionType && stat.userInteractionCount !== undefined) {
+                        const count = parseInt(stat.userInteractionCount, 10);
+                        if (!isNaN(count)) {
+                          const type = stat.interactionType['@type'] || '';
+                          if (type.includes('LikeAction')) {
+                            likes = count;
+                          } else if (type.includes('CommentAction')) {
+                            comments = count;
+                          } else if (type.includes('ShareAction')) {
+                            shares = count;
+                          } else if (type.includes('WatchAction') || type.includes('ViewAction')) {
+                            views = count;
+                          }
+                        }
+                      }
+                    }
+                  }
+                  
+                  for (const key in item) {
+                    if (Object.prototype.hasOwnProperty.call(item, key)) {
+                      findInteractionStatistics(item[key]);
+                    }
+                  }
+                }
+                findInteractionStatistics(obj);
+              }
+            } catch (e) {}
+          }
+        } catch (err) {}
+
+        // 2. Meta Description Scraping Fallback
+        try {
+          const descriptionMeta = document.querySelector('meta[property="og:description"]') || document.querySelector('meta[name="description"]');
+          if (descriptionMeta) {
+            const descText = descriptionMeta.getAttribute('content') || '';
+            if (!likes) {
+              const likeMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)/i) ||
+                                descText.match(/(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+              if (likeMatch) likes = parseNum(likeMatch[1]);
+            }
+            if (!comments) {
+              const commentMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:comments?|មតិយោបល់|មតិ)/i) ||
+                                   descText.match(/(?:comments?|មតិយោបល់|មតិ)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+              if (commentMatch) comments = parseNum(commentMatch[1]);
+            }
+            if (!shares) {
+              const shareMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:shares?|ការចែករំលែក|ចែករំលែក)/i) ||
+                                 descText.match(/(?:shares?|ការចែករំលែក|ចែករំលែក)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+              if (shareMatch) shares = parseNum(shareMatch[1]);
+            }
+            if (!views) {
+              const viewMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:views?|ទស្សនា|ការទស្សនា)/i) ||
+                                descText.match(/(?:views?|ទស្សនា|ការទស្សនា)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+              if (viewMatch) views = parseNum(viewMatch[1]);
+            }
+          }
+        } catch (e) {}
+
+        // 3. DOM Watch Metrics Bar Splitting Fallback
+        try {
+          const candidates = Array.from(document.querySelectorAll('div, span'));
+          for (const el of candidates) {
+            const text = (el.innerText || '').trim();
+            if (text.includes('·') || text.includes('\n')) {
+              const containsViews = text.toLowerCase().includes('view') || text.includes('ទស្សនា');
+              const containsComments = text.toLowerCase().includes('comment') || text.includes('មតិ');
+              
+              if (containsViews && text.length < 200) {
+                const parts = text.split(/[\n·•\r]+/).map(p => p.trim()).filter(Boolean);
+                let localLikes = 0;
+                let localComments = 0;
+                let localShares = 0;
+                let localViews = 0;
+                
+                for (const part of parts) {
+                  const cleanPart = part.toLowerCase();
+                  if (cleanPart.includes('comment') || cleanPart.includes('មតិ')) {
+                    const match = part.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)/);
+                    if (match) localComments = parseNum(match[1]);
+                  } else if (cleanPart.includes('share') || cleanPart.includes('ចែករំលែក')) {
+                    const match = part.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)/);
+                    if (match) localShares = parseNum(match[1]);
+                  } else if (cleanPart.includes('view') || cleanPart.includes('ទស្សនា')) {
+                    const match = part.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)/);
+                    if (match) localViews = parseNum(match[1]);
+                  } else {
+                    const match = part.match(/^([\d.,]+(?:K|M|ពាន់|លាន)?)$/);
+                    if (match) {
+                      localLikes = parseNum(match[1]);
+                    } else {
+                      const generalMatch = part.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)/);
+                      if (generalMatch) localLikes = parseNum(generalMatch[1]);
+                    }
+                  }
+                }
+                
+                if (localLikes && !likes) likes = localLikes;
+                if (localComments && !comments) comments = localComments;
+                if (localShares && !shares) shares = localShares;
+                if (localViews && !views) views = localViews;
+              }
+            }
+          }
+        } catch (e) {}
+
+        // 4. Dedicated video DOM selector fallback (guaranteeing no views count bleed into reactions)
+        if (!likes || !comments || !shares) {
+          const isInvalidVideoElement = (text, label) => {
+            const combined = (text + ' ' + label).toLowerCase();
+            return combined.includes('view') || combined.includes('ទស្សនា');
+          };
+          
+          if (!likes) {
+            const reactionEls = Array.from(document.querySelectorAll(
+              'a[href*="/reaction/profile/browser/"], a[href*="reaction_profile"], a[href*="reaction"], [aria-label*="reaction" i], [aria-label*="Reactions" i], [aria-label*="Like" i], [aria-label*="like" i], [aria-label*="reacted" i], [aria-label*="បញ្ចេញមតិប្រតិកម្ម" i], [aria-label*="ប្រតិកម្ម" i], [data-testid*="reaction" i], [data-testid*="Reactions" i], [class*="reactions" i]'
+            ));
+            const cands = [];
+            for (const el of reactionEls) {
+              const text = el.innerText || '';
+              const label = el.getAttribute('aria-label') || '';
+              if (isInvalidVideoElement(text, label)) continue;
+              if (text && text.length <= 150) extractLikes(text).forEach(n => cands.push(n));
+              if (label && label.length <= 150) extractLikes(label).forEach(n => cands.push(n));
+            }
+            if (cands.length > 0) likes = Math.max(...cands);
+          }
+          
+          if (!comments) {
+            const commentEls = Array.from(document.querySelectorAll(
+              '[aria-label*="comment" i], [aria-label*="comments" i], [aria-label*="មតិយោបល់" i], [aria-label*="មតិ" i], [data-testid*="comment" i], [class*="comment" i]'
+            ));
+            const cands = [];
+            for (const el of commentEls) {
+              const text = el.innerText || '';
+              const label = el.getAttribute('aria-label') || '';
+              if (isInvalidVideoElement(text, label)) continue;
+              if (text && text.length <= 150) extractComments(text).forEach(n => cands.push(n));
+              if (label && label.length <= 150) extractComments(label).forEach(n => cands.push(n));
+            }
+            if (cands.length > 0) comments = Math.max(...cands);
+          }
+          
+          if (!shares) {
+            const shareEls = Array.from(document.querySelectorAll(
+              '[aria-label*="share" i], [aria-label*="shares" i], [aria-label*="ចែករំលែក" i], [aria-label*="ការចែករំលែក" i], [data-testid*="share" i], [class*="share" i]'
+            ));
+            const cands = [];
+            for (const el of shareEls) {
+              const text = el.innerText || '';
+              const label = el.getAttribute('aria-label') || '';
+              if (isInvalidVideoElement(text, label)) continue;
+              if (text && text.length <= 150) extractShares(text).forEach(n => cands.push(n));
+              if (label && label.length <= 150) extractShares(label).forEach(n => cands.push(n));
+            }
+            if (cands.length > 0) shares = Math.max(...cands);
+          }
+        }
+
+        return { likes, comments, shares, views };
+      }
+
+      // -------------------------------------------------------------
+      // STANDARD IMAGE POST SCRAPING LOGIC (STRICTLY UNCHANGED)
+      // -------------------------------------------------------------
       function isInsideCommentOrSidebar(el) {
         let parent = el;
         while (parent) {
@@ -368,7 +562,125 @@ app.post('/api/scrape', async (req, res) => {
       const shares = sharesCandidates.length > 0 ? Math.max(...sharesCandidates) : 0;
 
       return { likes, comments, shares };
-    });
+    }, isVideo);
+
+    // If the post is a video and the shares count is 0, fetch mobile view fallback
+    if (isVideo && metrics.shares === 0) {
+      console.log('🕵️ Video shares count is 0 on desktop view. Fetching mobile view fallback...');
+      try {
+        const mobilePage = await browser.newPage();
+        await mobilePage.setViewport({ width: 375, height: 812, isMobile: true });
+        await mobilePage.setExtraHTTPHeaders({
+          'Accept-Language': 'en-US,en;q=0.9'
+        });
+        
+        let mobileUrl = url;
+        if (!mobileUrl.includes('m.facebook.com')) {
+          mobileUrl = mobileUrl.replace(/(?:web\.|www\.)?facebook\.com/i, 'm.facebook.com');
+        }
+        if (!mobileUrl.startsWith('http')) {
+          mobileUrl = 'https://m.facebook.com' + (mobileUrl.startsWith('/') ? '' : '/') + mobileUrl;
+        }
+        
+        console.log(`📱 Loading mobile fallback URL: ${mobileUrl}`);
+        await mobilePage.goto(mobileUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await mobilePage.evaluate(() => new Promise(resolve => setTimeout(resolve, 5000)));
+        
+        const mobileShares = await mobilePage.evaluate(() => {
+          function parseNum(text) {
+            if (!text) return 0;
+            const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+            let clean = text.trim().toUpperCase().replace(/[០-៩]/g, char => khmerDigits.indexOf(char));
+            clean = clean.replace(/,/g, '');
+            
+            if (clean.endsWith('K') || clean.includes('K') || clean.endsWith('ពាន់') || clean.includes('ពាន់')) {
+              const numPart = clean.replace('K', '').replace('ពាន់', '');
+              const parsed = parseFloat(numPart);
+              return isNaN(parsed) ? 0 : Math.round(parsed * 1000);
+            }
+            if (clean.endsWith('M') || clean.includes('M') || clean.endsWith('លាន') || clean.includes('លាន')) {
+              const numPart = clean.replace('M', '').replace('លាន', '');
+              const parsed = parseFloat(numPart);
+              return isNaN(parsed) ? 0 : Math.round(parsed * 1000000);
+            }
+            const val = parseInt(clean, 10);
+            return isNaN(val) ? 0 : val;
+          }
+
+          function parseMobileShares(label) {
+            if (!label) return 0;
+            const khmerDigits = ['០', '១', '២', '៣', '៤', '៥', '៦', '៧', '៨', '៩'];
+            let cleanLabel = label.trim().replace(/[០-៩]/g, char => khmerDigits.indexOf(char));
+            
+            let match = cleanLabel.match(/Share,\s*([\d.,]+)\s*shares?/i);
+            if (match) {
+              const val = parseFloat(match[1].replace(/,/g, ''));
+              return isNaN(val) ? 0 : val;
+            }
+            match = cleanLabel.match(/Share,\s*([\d.,]+)\s*thousand\s*shares?/i);
+            if (match) {
+              const val = parseFloat(match[1].replace(/,/g, ''));
+              return isNaN(val) ? 0 : Math.round(val * 1000);
+            }
+            match = cleanLabel.match(/Share,\s*([\d.,]+)\s*million\s*shares?/i);
+            if (match) {
+              const val = parseFloat(match[1].replace(/,/g, ''));
+              return isNaN(val) ? 0 : Math.round(val * 1000000);
+            }
+            
+            // Match Khmer: e.g. "ចែករំលែក ចំនួន 4 ពាន់ ដង" or "ការចែករំលែក 4 ពាន់"
+            match = cleanLabel.match(/(?:ចែករំលែក|ការចែករំលែក)[^\d]*([\d.,]+)\s*(ពាន់|លាន)?/i);
+            if (match) {
+              const numPart = match[1].replace(/,/g, '');
+              const suffix = match[2];
+              const parsed = parseFloat(numPart);
+              if (isNaN(parsed)) return 0;
+              if (suffix === 'ពាន់') return Math.round(parsed * 1000);
+              if (suffix === 'លាន') return Math.round(parsed * 1000000);
+              return parsed;
+            }
+            return 0;
+          }
+
+          const shareButtons = Array.from(document.querySelectorAll('[aria-label*="share" i], [aria-label*="shares" i], [aria-label*="ចែករំលែក" i]'));
+          for (const btn of shareButtons) {
+            const label = btn.getAttribute('aria-label') || '';
+            const parsed = parseMobileShares(label);
+            if (parsed > 0) return parsed;
+          }
+
+          const allEls = Array.from(document.querySelectorAll('*'));
+          let bestVal = 0;
+          for (const el of allEls) {
+            const text = (el.innerText || '').trim();
+            const label = el.getAttribute('aria-label') || '';
+            
+            const parsedLabel = parseMobileShares(label);
+            if (parsedLabel > bestVal) bestVal = parsedLabel;
+            
+            if (text.length > 0 && text.length < 150) {
+              if (text.toLowerCase().includes('share') || text.includes('ចែករំលែក')) {
+                const match = text.match(/([\d.,]+(?:K|M|thousand|million|លាន|ពាន់)?)\s*(?:shares?|ការចែករំលែក|ចែករំលែក)/i) ||
+                              text.match(/(?:shares?|ការចែករំលែក|ចែករំលែក)[^\d\n]*([\d.,]+(?:K|M|thousand|million|លាន|ពាន់)?)/i);
+                if (match) {
+                  const val = parseNum(match[1]);
+                  if (val > bestVal) bestVal = val;
+                }
+              }
+            }
+          }
+          return bestVal;
+        });
+        
+        console.log(`🎯 Successfully scraped mobile shares fallback: ${mobileShares}`);
+        if (mobileShares > 0) {
+          metrics.shares = mobileShares;
+        }
+        await mobilePage.close();
+      } catch (mobileErr) {
+        console.error('⚠️ Failed to scrape mobile shares fallback:', mobileErr);
+      }
+    }
 
     console.log(`✅ Success! Extracted metrics:`, metrics);
     return res.status(200).json({ success: true, ...metrics });

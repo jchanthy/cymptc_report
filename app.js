@@ -37,7 +37,7 @@ let appConfig = {
   scraperEngine: "apify",
   apifyToken: "",
   apifyActorId: "",
-  selfHostedUrl: "http://localhost:3000"
+  selfHostedUrl: "https://ycpp-facebook-scraper-server-56450014005.asia-southeast1.run.app"
 };
 
 let reportHistory = [];
@@ -50,6 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
   loadHistory();
   startDateTimeTicker();
   setupEventListeners();
+  updateScraperInputs(); // Render default scraper input UI
   updateLivePreview();
   renderAnalyticsChart();
   renderBuildInfo();
@@ -108,7 +109,7 @@ function loadSettings() {
     appConfig = JSON.parse(saved);
     if (!appConfig.theme) appConfig.theme = "dark";
     if (!appConfig.scraperEngine) appConfig.scraperEngine = "apify";
-    if (!appConfig.selfHostedUrl) appConfig.selfHostedUrl = "http://localhost:3000";
+    if (!appConfig.selfHostedUrl) appConfig.selfHostedUrl = "https://ycpp-facebook-scraper-server-56450014005.asia-southeast1.run.app";
     
     // Apply theme
     document.documentElement.setAttribute("data-theme", appConfig.theme);
@@ -131,12 +132,12 @@ function loadSettings() {
     document.getElementById("scraper-engine").value = appConfig.scraperEngine || "apify";
     document.getElementById("apify-token").value = appConfig.apifyToken || "";
     document.getElementById("apify-actor-id").value = appConfig.apifyActorId || "";
-    document.getElementById("self-hosted-url").value = appConfig.selfHostedUrl || "http://localhost:3000";
+    document.getElementById("self-hosted-url").value = appConfig.selfHostedUrl || "https://ycpp-facebook-scraper-server-56450014005.asia-southeast1.run.app";
   } else {
     // Default theme setup
     appConfig.theme = "dark";
     appConfig.scraperEngine = "apify";
-    appConfig.selfHostedUrl = "http://localhost:3000";
+    appConfig.selfHostedUrl = "https://ycpp-facebook-scraper-server-56450014005.asia-southeast1.run.app";
     document.documentElement.setAttribute("data-theme", "dark");
     document.getElementById("app-theme").value = "dark";
     
@@ -150,7 +151,7 @@ function loadSettings() {
     document.getElementById("scraper-engine").value = "apify";
     document.getElementById("apify-token").value = "";
     document.getElementById("apify-actor-id").value = "apify/facebook-posts-scraper";
-    document.getElementById("self-hosted-url").value = "http://localhost:3000";
+    document.getElementById("self-hosted-url").value = "https://ycpp-facebook-scraper-server-56450014005.asia-southeast1.run.app";
   }
   
   toggleScraperEngineFields();
@@ -240,6 +241,12 @@ function setupEventListeners() {
   const scraperEngineSelect = document.getElementById("scraper-engine");
   if (scraperEngineSelect) {
     scraperEngineSelect.addEventListener("change", toggleScraperEngineFields);
+  }
+
+  // Change scraper input design instantly on selection change
+  const fbTargetCategory = document.getElementById("fb-target-category");
+  if (fbTargetCategory) {
+    fbTargetCategory.addEventListener("change", updateScraperInputs);
   }
   
   // Close modal when clicking outside content
@@ -869,24 +876,84 @@ function renderAnalyticsChart() {
   });
 }
 
-// Scrape Facebook Post metrics using Apify API
-// Scrape Facebook Post metrics using Apify API or Self-Hosted Scraper
-async function scrapeFacebookPost() {
-  const urlInput = document.getElementById("fb-post-url");
-  const url = urlInput.value.trim();
-  const targetCategory = document.getElementById("fb-target-category").value;
-  const scrapeBtn = document.getElementById("scrape-fb-btn");
+// Scrape helper functions to manage multiple URLs dynamically
+function updateScraperInputs() {
+  const category = document.getElementById("fb-target-category").value;
+  const container = document.getElementById("fb-urls-container");
+  if (!container) return;
+
+  if (category === "dissemination") {
+    container.innerHTML = `
+      <div id="multi-urls-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="text" class="fb-post-url-input" placeholder="បិទភ្ជាប់តំណភ្ជាប់ទី ១... (Paste Facebook URL 1)" style="font-size: 0.85rem; padding: 0.7rem 1rem; flex: 1;">
+          <button type="button" class="btn" onclick="removeUrlInput(this)" style="padding: 0.7rem; background: rgba(242, 92, 84, 0.1); color: var(--color-danger); border: 1px solid rgba(242, 92, 84, 0.2); aspect-ratio: 1; min-width: 42px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer;" title="លុបចោល">✕</button>
+        </div>
+      </div>
+      <button type="button" class="btn" onclick="addUrlInput()" style="align-self: flex-start; margin-top: 0.25rem; font-size: 0.8rem; padding: 0.45rem 0.9rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass); display: flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-normal); transition: var(--transition-smooth);">
+        <span>➕</span> ថែមតំណភ្ជាប់ (Add URL)
+      </button>
+    `;
+  } else {
+    container.innerHTML = `
+      <input type="text" class="fb-post-url-input" placeholder="បិទភ្ជាប់តំណភ្ជាប់ហ្វេសប៊ុកនៅទីនេះ... (Paste Facebook URL)" style="font-size: 0.85rem; padding: 0.7rem 1rem;">
+    `;
+  }
+}
+
+function addUrlInput() {
+  const list = document.getElementById("multi-urls-list");
+  if (!list) return;
   
-  if (!url) {
-    showToast("⚠️ សូមបិទភ្ជាប់តំណភ្ជាប់ (URL) ហ្វេសប៊ុកជាមុនសិន!", "error");
-    urlInput.focus();
+  const count = list.children.length + 1;
+  const row = document.createElement("div");
+  row.style.display = "flex";
+  row.style.gap = "0.5rem";
+  row.style.alignItems = "center";
+  row.innerHTML = `
+    <input type="text" class="fb-post-url-input" placeholder="បិទភ្ជាប់តំណភ្ជាប់ទី ${count}... (Paste Facebook URL ${count})" style="font-size: 0.85rem; padding: 0.7rem 1rem; flex: 1;">
+    <button type="button" class="btn" onclick="removeUrlInput(this)" style="padding: 0.7rem; background: rgba(242, 92, 84, 0.1); color: var(--color-danger); border: 1px solid rgba(242, 92, 84, 0.2); aspect-ratio: 1; min-width: 42px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer;" title="លុបចោល">✕</button>
+  `;
+  list.appendChild(row);
+}
+
+function removeUrlInput(button) {
+  const list = document.getElementById("multi-urls-list");
+  if (!list) return;
+  
+  if (list.children.length <= 1) {
+    showToast("⚠️ ត្រូវតែមានតំណភ្ជាប់យ៉ាងហោចណាស់ ១!", "error");
     return;
   }
   
-  // Simple validation to ensure it looks like a FB url
-  if (!url.includes("facebook.com") && !url.includes("fb.watch") && !url.includes("fb.com")) {
-    showToast("⚠️ តំណភ្ជាប់នេះមិនមែនជា Facebook URL ឡើយ!", "error");
+  button.parentElement.remove();
+  
+  // Re-index placeholders for neatness
+  const inputs = list.querySelectorAll(".fb-post-url-input");
+  inputs.forEach((input, index) => {
+    input.placeholder = `បិទភ្ជាប់តំណភ្ជាប់ទី ${index + 1}... (Paste Facebook URL ${index + 1})`;
+  });
+}
+
+// Scrape Facebook Post metrics using Apify API or Self-Hosted Scraper (supports multiple URLs)
+async function scrapeFacebookPost() {
+  const urlInputs = Array.from(document.querySelectorAll(".fb-post-url-input"));
+  const urls = urlInputs.map(input => input.value.trim()).filter(url => url !== "");
+  const targetCategory = document.getElementById("fb-target-category").value;
+  const scrapeBtn = document.getElementById("scrape-fb-btn");
+  
+  if (urls.length === 0) {
+    showToast("⚠️ សូមបិទភ្ជាប់តំណភ្ជាប់ (URL) ហ្វេសប៊ុកជាមុនសិន!", "error");
+    if (urlInputs[0]) urlInputs[0].focus();
     return;
+  }
+  
+  // Simple validation to ensure they look like Facebook URLs
+  for (const url of urls) {
+    if (!url.includes("facebook.com") && !url.includes("fb.watch") && !url.includes("fb.com")) {
+      showToast("⚠️ មានតំណភ្ជាប់ខ្លះមិនមែនជា Facebook URL ឡើយ!", "error");
+      return;
+    }
   }
 
   const engine = appConfig.scraperEngine || "apify";
@@ -898,35 +965,63 @@ async function scrapeFacebookPost() {
   const originalBtnHTML = scrapeBtn.innerHTML;
   scrapeBtn.disabled = true;
   scrapeBtn.innerHTML = `<span>⏳</span> កំពុងទាញយក...`;
-  urlInput.disabled = true;
+  urlInputs.forEach(input => input.disabled = true);
+
+  let totalLikes = 0;
+  let totalComments = 0;
+  let totalShares = 0;
+  let totalViews = 0;
+  let hasViews = false;
+  let successfulScrapes = 0;
 
   // 1. SELF-HOSTED ENGINE PIPELINE
   if (engine === "self-hosted") {
-    showToast("🚀 កំពុងភ្ជាប់ទៅកាន់ Self-Hosted Scraper Service...", "info");
+    showToast(`🚀 កំពុងភ្ជាប់ទៅកាន់ Self-Hosted Scraper Service សម្រាប់តំណភ្ជាប់ទាំង ${urls.length}...`, "info");
     
     try {
-      const response = await fetch(`${selfHostedUrl}/api/scrape`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ url })
+      // Scrape in parallel using Promise.all
+      const scrapePromises = urls.map(async (url) => {
+        const response = await fetch(`${selfHostedUrl}/api/scrape`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ url })
+        });
+
+        if (!response.ok) {
+          const errData = await response.json().catch(() => ({}));
+          throw new Error(errData.error || `HTTP error! code: ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!data.success) {
+          throw new Error(data.error || "ការទាញយកទិន្នន័យបរាជ័យ។");
+        }
+        return data;
       });
 
-      if (!response.ok) {
-        const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || `HTTP error! code: ${response.status}`);
-      }
-
-      const data = await response.json();
-      if (!data.success) {
-        throw new Error(data.error || "ការទាញយកទិន្នន័យបរាជ័យ។");
-      }
-
-      const { likes, comments, shares } = data;
-      applyScrapedData(targetCategory, likes, comments, shares);
+      const results = await Promise.all(scrapePromises);
       
-      showToast("⚡ ទាញយកជោគជ័យ (Self-Hosted)៖ Likes: " + likes + ", Comments: " + comments + ", Shares: " + shares, "success");
+      results.forEach(data => {
+        totalLikes += data.likes || 0;
+        totalComments += data.comments || 0;
+        totalShares += data.shares || 0;
+        if (data.views && data.views > 0) {
+          hasViews = true;
+          totalViews += data.views;
+        }
+        successfulScrapes++;
+      });
+
+      applyScrapedData(targetCategory, totalLikes, totalComments, totalShares, urls.length);
+      
+      if (hasViews && totalViews > 0) {
+        const viewsFormatted = totalViews >= 1000000 ? (totalViews / 1000000).toFixed(1).replace('.0', '') + 'M' : (totalViews >= 1000 ? (totalViews / 1000).toFixed(1).replace('.0', '') + 'K' : totalViews);
+        showToast(`⚡ ទាញយកជោគជ័យចំនួន ${successfulScrapes} ផុស (Self-Hosted)៖ Likes: ${totalLikes.toLocaleString()}, Comments: ${totalComments.toLocaleString()}, Shares: ${totalShares.toLocaleString()} (Views: ${viewsFormatted})`, "success");
+      } else {
+        showToast(`⚡ ទាញយកជោគជ័យចំនួន ${successfulScrapes} ផុស (Self-Hosted)៖ Likes: ${totalLikes.toLocaleString()}, Comments: ${totalComments.toLocaleString()}, Shares: ${totalShares.toLocaleString()}`, "success");
+      }
 
       if (typeof confetti === 'function') {
         confetti({
@@ -936,7 +1031,11 @@ async function scrapeFacebookPost() {
         });
       }
 
-      urlInput.value = ""; // clear URL input on success
+      // clear successful URLs
+      urlInputs.forEach(input => input.value = "");
+      if (targetCategory === "dissemination") {
+        updateScraperInputs(); // reset to 1 clean input
+      }
 
     } catch (error) {
       console.error("Self-hosted scraping call failed:", error);
@@ -944,7 +1043,7 @@ async function scrapeFacebookPost() {
     } finally {
       scrapeBtn.disabled = false;
       scrapeBtn.innerHTML = originalBtnHTML;
-      urlInput.disabled = false;
+      urlInputs.forEach(input => input.disabled = false);
     }
     return;
   }
@@ -952,21 +1051,29 @@ async function scrapeFacebookPost() {
   // 2. APIFY ENGINE PIPELINE
   // If no Token is configured, fallback to Mock scraper for a rich interactive demonstration
   if (!apifyToken) {
-    showToast("ℹ️ កំពុងដំណើរការជាមួយទិន្នន័យសាកល្បង (Mock Scraper)...", "info");
+    showToast(`ℹ️ កំពុងដំណើរការជាមួយទិន្នន័យសាកល្បង (Mock Scraper) សម្រាប់តំណភ្ជាប់ទាំង ${urls.length}...`, "info");
     
     setTimeout(() => {
-      const mockLikes = Math.floor(Math.random() * 45) + 15;
-      const mockComments = Math.floor(Math.random() * 12) + 3;
-      const mockShares = Math.floor(Math.random() * 8) + 1;
+      urls.forEach(() => {
+        totalLikes += Math.floor(Math.random() * 45) + 15;
+        totalComments += Math.floor(Math.random() * 12) + 3;
+        totalShares += Math.floor(Math.random() * 8) + 1;
+        successfulScrapes++;
+      });
       
-      applyScrapedData(targetCategory, mockLikes, mockComments, mockShares);
+      applyScrapedData(targetCategory, totalLikes, totalComments, totalShares, urls.length);
       
       scrapeBtn.disabled = false;
       scrapeBtn.innerHTML = originalBtnHTML;
-      urlInput.disabled = false;
-      urlInput.value = ""; // clear input
+      urlInputs.forEach(input => {
+        input.disabled = false;
+        input.value = "";
+      });
+      if (targetCategory === "dissemination") {
+        updateScraperInputs(); // reset to 1 clean input
+      }
       
-      showToast("⚡ ទាញយកសាកល្បងជោគជ័យ៖ Likes: " + mockLikes + ", Comments: " + mockComments + ", Shares: " + mockShares, "success");
+      showToast(`⚡ ទាញយកសាកល្បងជោគជ័យចំនួន ${successfulScrapes} ផុស៖ Likes: ${totalLikes}, Comments: ${totalComments}, Shares: ${totalShares}`, "success");
       
       if (typeof confetti === 'function') {
         confetti({
@@ -980,15 +1087,16 @@ async function scrapeFacebookPost() {
   }
 
   // Real Apify API Call!
-  showToast("🚀 កំពុងភ្ជាប់ទៅកាន់ Apify Scraper Engine...", "info");
+  showToast(`🚀 កំពុងភ្ជាប់ទៅកាន់ Apify Scraper Engine សម្រាប់តំណភ្ជាប់ទាំង ${urls.length}...`, "info");
   
   // Normalize actor ID (replace slash with tilde)
   const normalizedActor = apifyActorId.replace(/\//g, '~');
   const apifyUrl = `https://api.apify.com/v2/acts/${normalizedActor}/run-sync-get-dataset-items?token=${apifyToken}&timeout=120`;
   
+  const startUrls = urls.map(url => ({ url }));
   const inputBody = {
-    "startUrls": [{ "url": url }],
-    "resultsLimit": 1
+    "startUrls": startUrls,
+    "resultsLimit": urls.length
   };
 
   try {
@@ -1012,22 +1120,26 @@ async function scrapeFacebookPost() {
     console.log("Scraped FB items:", items);
 
     if (!items || items.length === 0) {
-      throw new Error("មិនទាន់រកឃើញទិន្នន័យពី URL នេះឡើយ។ សូមប្រាកដថា Post នេះជាសាធារណៈ (Public)។");
+      throw new Error("មិនទាន់រកឃើញទិន្នន័យពី URL ទាំងនេះឡើយ។ សូមប្រាកដថា Post ទាំងនេះជាសាធារណៈ (Public)។");
     }
 
-    const item = items[0];
-    
-    // Support multiple popular Facebook scrapers in Apify store by matching different keys
-    const likes = item.likesCount ?? item.likes ?? item.reactionsCount ?? item.reactionCount ?? 0;
-    const comments = item.commentsCount ?? item.comments ?? 0;
-    let shares = item.sharesCount ?? item.shares ?? 0;
-    if (typeof shares === 'object' && shares !== null) {
-      shares = shares.count ?? 0;
-    }
+    items.forEach(item => {
+      // Support multiple popular Facebook scrapers in Apify store by matching different keys
+      const likes = item.likesCount ?? item.likes ?? item.reactionsCount ?? item.reactionCount ?? 0;
+      const comments = item.commentsCount ?? item.comments ?? 0;
+      let shares = item.sharesCount ?? item.shares ?? 0;
+      if (typeof shares === 'object' && shares !== null) {
+        shares = shares.count ?? 0;
+      }
+      totalLikes += likes;
+      totalComments += comments;
+      totalShares += shares;
+      successfulScrapes++;
+    });
 
-    applyScrapedData(targetCategory, likes, comments, shares);
+    applyScrapedData(targetCategory, totalLikes, totalComments, totalShares, urls.length);
 
-    showToast("⚡ ទាញយកទិន្នន័យជោគជ័យ! Likes: " + likes + ", Comments: " + comments + ", Shares: " + shares, "success");
+    showToast(`⚡ ទាញយកទិន្នន័យជោគជ័យចំនួន ${successfulScrapes} ផុស! Likes: ${totalLikes}, Comments: ${totalComments}, Shares: ${totalShares}`, "success");
 
     if (typeof confetti === 'function') {
       confetti({
@@ -1037,7 +1149,10 @@ async function scrapeFacebookPost() {
       });
     }
 
-    urlInput.value = ""; // clear URL input on success
+    urlInputs.forEach(input => input.value = "");
+    if (targetCategory === "dissemination") {
+      updateScraperInputs(); // reset to 1 clean input
+    }
 
   } catch (error) {
     console.error("Facebook scraping call failed:", error);
@@ -1045,19 +1160,19 @@ async function scrapeFacebookPost() {
   } finally {
     scrapeBtn.disabled = false;
     scrapeBtn.innerHTML = originalBtnHTML;
-    urlInput.disabled = false;
+    urlInputs.forEach(input => input.disabled = false);
   }
 }
 
 // Map parsed statistics to the target form fields
-function applyScrapedData(category, likes, comments, shares) {
+function applyScrapedData(category, likes, comments, shares, postCount = 1) {
   if (category === "dissemination") {
     document.getElementById("dissem_like").value = likes;
     document.getElementById("dissem_comment").value = comments;
     document.getElementById("dissem_share").value = shares;
-    // Auto increment post count if 0
+    // Set post count to the number of URLs scraped
     const postEl = document.getElementById("post_count");
-    if (parseInt(postEl.value) === 0) postEl.value = 1;
+    postEl.value = postCount;
   } else if (category === "support") {
     document.getElementById("support_like").value = likes;
     document.getElementById("support_comment").value = comments;
@@ -1097,4 +1212,7 @@ window.deleteHistoryItem = deleteHistoryItem;
 window.saveSettings = saveSettings;
 window.scrapeFacebookPost = scrapeFacebookPost;
 window.toggleScraperEngineFields = toggleScraperEngineFields;
+window.updateScraperInputs = updateScraperInputs;
+window.addUrlInput = addUrlInput;
+window.removeUrlInput = removeUrlInput;
 
