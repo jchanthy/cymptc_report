@@ -100,8 +100,8 @@
                   <span>🤖</span> ទាញយកទិន្នន័យស្វ័យប្រវត្តពី Facebook URL
                 </label>
                 
-                <div class="fb-controls-grid" style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 0.5rem; margin-top: 0.6rem;">
-                  <div class="select-wrapper">
+                <div class="fb-controls-grid" style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem;">
+                  <div class="select-wrapper" style="flex: 1.2; min-width: 150px;">
                     <select id="fb-target-category">
                       <option value="dissemination">២. ផ្សព្វផ្សាយ (Dissemination)</option>
                       <option value="support" selected>៣. គាំទ្រ (Support)</option>
@@ -109,8 +109,11 @@
                       <option value="leader">៥. គាំទ្រថ្នាក់ដឹកនាំ (Leader Support)</option>
                     </select>
                   </div>
-                  <button type="button" class="btn btn-accent" id="scrape-fb-btn" onclick="scrapeFacebookPost()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-family: var(--font-kh); font-weight: 500;">
+                  <button type="button" class="btn btn-accent" id="scrape-fb-btn" onclick="scrapeFacebookPost()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-family: var(--font-kh); font-weight: 500; flex: 0.8; min-width: 120px;">
                     <span>🔍</span> ទាញយកទិន្នន័យ
+                  </button>
+                  <button type="button" class="btn btn-secondary" id="sync-mobile-btn" onclick="generateSyncLink()" style="padding: 0.6rem 1rem; font-size: 0.85rem; font-family: var(--font-kh); font-weight: 500; flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 0.3rem; border: 1px dashed var(--color-primary);" title="ចម្លងតំណភ្ជាប់ផ្ទេរទៅទូរស័ព្ទ">
+                    <span>🔗</span> ផ្ទេរទៅទូរស័ព្ទ (Sync)
                   </button>
                 </div>
                 

@@ -50,7 +50,43 @@ document.addEventListener("DOMContentLoaded", () => {
   loadHistory();
   startDateTimeTicker();
   setupEventListeners();
-  updateScraperInputs(); // Render default scraper input UI
+  
+  // Parse Sync Link query parameters if any
+  const urlParams = new URLSearchParams(window.location.search);
+  const syncCategory = urlParams.get("category");
+  const syncUrlsStr = urlParams.get("urls");
+  
+  if (syncCategory || syncUrlsStr) {
+    if (syncCategory && document.getElementById("fb-target-category")) {
+      document.getElementById("fb-target-category").value = syncCategory;
+      localStorage.setItem("ycpp_scraped_urls_category", syncCategory);
+    }
+    if (syncUrlsStr) {
+      const urls = syncUrlsStr.split(",");
+      localStorage.setItem("ycpp_scraped_urls", JSON.stringify(urls));
+    }
+    // Clean url query params from address bar without reloading
+    const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+    window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+    
+    setTimeout(() => {
+      showToast("🔗 បានផ្ទេរ និង pre-fill តំណភ្ជាប់ដោយជោគជ័យ!", "success");
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 60,
+          spread: 40,
+          origin: { y: 0.6 }
+        });
+      }
+    }, 500);
+  }
+  
+  const savedCategory = localStorage.getItem("ycpp_scraped_urls_category");
+  if (savedCategory && document.getElementById("fb-target-category")) {
+    document.getElementById("fb-target-category").value = savedCategory;
+  }
+  updateScraperInputs(true); // Render saved scraper input UI & pre-fill saved URLs
+  
   updateLivePreview();
   renderAnalyticsChart();
   renderBuildInfo();
@@ -995,28 +1031,115 @@ function renderAnalyticsChart() {
 }
 
 // Scrape helper functions to manage multiple URLs dynamically
-function updateScraperInputs() {
+function escapeHTMLAttribute(str) {
+  if (!str) return "";
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function attachUrlInputListeners() {
+  const container = document.getElementById("fb-urls-container");
+  if (!container) return;
+  
+  // Save state instantly whenever the user types or pastes inside any input
+  container.addEventListener("input", saveScraperState);
+  container.addEventListener("change", saveScraperState);
+}
+
+function saveScraperState() {
+  const category = document.getElementById("fb-target-category")?.value || "support";
+  const urlInputs = Array.from(document.querySelectorAll(".fb-post-url-input"));
+  const urls = urlInputs.map(input => input.value.trim());
+  
+  localStorage.setItem("ycpp_scraped_urls_category", category);
+  localStorage.setItem("ycpp_scraped_urls", JSON.stringify(urls));
+}
+
+function generateSyncLink() {
+  const category = document.getElementById("fb-target-category")?.value || "support";
+  const urlInputs = Array.from(document.querySelectorAll(".fb-post-url-input"));
+  const urls = urlInputs.map(input => input.value.trim()).filter(url => url !== "");
+  
+  if (urls.length === 0) {
+    showToast("⚠️ គ្មានតំណភ្ជាប់ដើម្បីបង្កើត Link ផ្ទេរឡើយ!", "error");
+    return;
+  }
+  
+  const syncUrl = `${window.location.origin}${window.location.pathname}?category=${encodeURIComponent(category)}&urls=${encodeURIComponent(urls.join(","))}`;
+  const shareMessage = `🔗 នេះជាតំណភ្ជាប់ផ្ទេរទិន្នន័យ (YCPP Sync Link) សម្រាប់បើកលើទូរស័ព្ទ៖\n\n${syncUrl}`;
+  
+  navigator.clipboard.writeText(syncUrl).then(() => {
+    showToast("📋 បានចម្លង! បើក Telegram ដើម្បីផ្ញើទៅកាន់ Saved Messages...", "success");
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 60,
+        spread: 40,
+        origin: { y: 0.7 }
+      });
+    }
+    
+    setTimeout(() => {
+      const tgUrl = `tg://share?url=&text=${encodeURIComponent(shareMessage)}`;
+      window.location.href = tgUrl;
+    }, 800);
+  }).catch(err => {
+    console.error("Failed to copy sync URL:", err);
+    showToast("⚠️ មិនអាចចម្លង! កំពុងបើក Telegram ដើម្បីផ្ញើ...", "warning");
+    const tgUrl = `tg://share?url=&text=${encodeURIComponent(shareMessage)}`;
+    window.location.href = tgUrl;
+  });
+}
+
+function updateScraperInputs(loadFromStorage = false) {
   const category = document.getElementById("fb-target-category").value;
   const container = document.getElementById("fb-urls-container");
   if (!container) return;
 
+  let urls = [""];
+  if (loadFromStorage) {
+    const savedUrls = localStorage.getItem("ycpp_scraped_urls");
+    if (savedUrls) {
+      try {
+        urls = JSON.parse(savedUrls);
+      } catch (e) {
+        console.error("Failed to parse saved URLs:", e);
+      }
+    }
+  } else {
+    // If not loading from storage but changing category, save the state immediately
+    saveScraperState();
+  }
+
   if (category === "dissemination") {
-    container.innerHTML = `
-      <div id="multi-urls-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+    let rowsHTML = "";
+    urls.forEach((url, index) => {
+      rowsHTML += `
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <input type="text" class="fb-post-url-input" placeholder="បិទភ្ជាប់តំណភ្ជាប់ទី ១... (Paste Facebook URL 1)" style="font-size: 0.85rem; padding: 0.7rem 1rem; flex: 1;">
+          <input type="text" class="fb-post-url-input" value="${escapeHTMLAttribute(url)}" placeholder="បិទភ្ជាប់តំណភ្ជាប់ទី ${index + 1}... (Paste Facebook URL ${index + 1})" style="font-size: 0.85rem; padding: 0.7rem 1rem; flex: 1;">
           <button type="button" class="btn" onclick="removeUrlInput(this)" style="padding: 0.7rem; background: rgba(242, 92, 84, 0.1); color: var(--color-danger); border: 1px solid rgba(242, 92, 84, 0.2); aspect-ratio: 1; min-width: 42px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer;" title="លុបចោល">✕</button>
         </div>
+      `;
+    });
+    container.innerHTML = `
+      <div id="multi-urls-list" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        ${rowsHTML}
       </div>
       <button type="button" class="btn" onclick="addUrlInput()" style="align-self: flex-start; margin-top: 0.25rem; font-size: 0.8rem; padding: 0.45rem 0.9rem; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-glass); display: flex; align-items: center; gap: 0.35rem; border-radius: var(--radius-sm); cursor: pointer; color: var(--text-normal); transition: var(--transition-smooth);">
         <span>➕</span> ថែមតំណភ្ជាប់ (Add URL)
       </button>
     `;
   } else {
+    const singleUrl = urls[0] || "";
     container.innerHTML = `
-      <input type="text" class="fb-post-url-input" placeholder="បិទភ្ជាប់តំណភ្ជាប់ហ្វេសប៊ុកនៅទីនេះ... (Paste Facebook URL)" style="font-size: 0.85rem; padding: 0.7rem 1rem;">
+      <input type="text" class="fb-post-url-input" value="${escapeHTMLAttribute(singleUrl)}" placeholder="បិទភ្ជាប់តំណភ្ជាប់ហ្វេសប៊ុកនៅទីនេះ... (Paste Facebook URL)" style="font-size: 0.85rem; padding: 0.7rem 1rem;">
     `;
   }
+  
+  attachUrlInputListeners();
 }
 
 function addUrlInput() {
@@ -1033,6 +1156,9 @@ function addUrlInput() {
     <button type="button" class="btn" onclick="removeUrlInput(this)" style="padding: 0.7rem; background: rgba(242, 92, 84, 0.1); color: var(--color-danger); border: 1px solid rgba(242, 92, 84, 0.2); aspect-ratio: 1; min-width: 42px; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-sm); cursor: pointer;" title="លុបចោល">✕</button>
   `;
   list.appendChild(row);
+  
+  saveScraperState();
+  attachUrlInputListeners();
 }
 
 function removeUrlInput(button) {
@@ -1046,11 +1172,12 @@ function removeUrlInput(button) {
   
   button.parentElement.remove();
   
-  // Re-index placeholders for neatness
   const inputs = list.querySelectorAll(".fb-post-url-input");
   inputs.forEach((input, index) => {
     input.placeholder = `បិទភ្ជាប់តំណភ្ជាប់ទី ${index + 1}... (Paste Facebook URL ${index + 1})`;
   });
+  
+  saveScraperState();
 }
 
 // Scrape Facebook Post metrics using Apify API or Self-Hosted Scraper (supports multiple URLs)
@@ -1149,12 +1276,7 @@ async function scrapeFacebookPost() {
         });
       }
 
-      // clear successful URLs
-      urlInputs.forEach(input => input.value = "");
-      if (targetCategory === "dissemination") {
-        updateScraperInputs(); // reset to 1 clean input
-      }
-
+      // Keeping the URLs in place as requested so users can fetch them again later!
     } catch (error) {
       console.error("Self-hosted scraping call failed:", error);
       showToast("❌ ការទាញយកបរាជ័យ៖ " + error.message + " (សូមប្រាកដថា Scraper Server កំពុងរត់)", "error");
@@ -1185,11 +1307,8 @@ async function scrapeFacebookPost() {
       scrapeBtn.innerHTML = originalBtnHTML;
       urlInputs.forEach(input => {
         input.disabled = false;
-        input.value = "";
       });
-      if (targetCategory === "dissemination") {
-        updateScraperInputs(); // reset to 1 clean input
-      }
+      // Keeping the URLs in place as requested so users can fetch them again later!
       
       showToast(`⚡ ទាញយកសាកល្បងជោគជ័យចំនួន ${successfulScrapes} ផុស៖ Likes: ${totalLikes}, Comments: ${totalComments}, Shares: ${totalShares}`, "success");
       
@@ -1267,11 +1386,7 @@ async function scrapeFacebookPost() {
       });
     }
 
-    urlInputs.forEach(input => input.value = "");
-    if (targetCategory === "dissemination") {
-      updateScraperInputs(); // reset to 1 clean input
-    }
-
+    // Keeping the URLs in place as requested so users can fetch them again later!
   } catch (error) {
     console.error("Facebook scraping call failed:", error);
     showToast("❌ ការទាញយកបរាជ័យ៖ " + error.message, "error");
@@ -1336,4 +1451,5 @@ window.removeUrlInput = removeUrlInput;
 window.openFeedback = openFeedback;
 window.closeFeedback = closeFeedback;
 window.submitFeedback = submitFeedback;
+window.generateSyncLink = generateSyncLink;
 
