@@ -402,7 +402,7 @@ select option {
   gap: 0.5rem;
   padding: 0.85rem 1.5rem;
   border-radius: var(--radius-md);
-  font-family: var(--font-en);
+  font-family: var(--font-kh);
   font-size: 0.95rem;
   font-weight: 600;
   cursor: pointer;
@@ -498,7 +498,7 @@ select option {
   border: none;
   color: var(--text-secondary);
   padding: 0.75rem 1rem;
-  font-family: var(--font-en);
+  font-family: var(--font-kh);
   font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
