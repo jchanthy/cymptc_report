@@ -242,6 +242,12 @@ function submitFeedback(event) {
     return;
   }
   
+  const submitBtn = event.target.querySelector('button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = "🔄 កំពុងបញ្ជូន... (Sending...)";
+  }
+  
   let emoji = "💬";
   let typeKh = "មតិយោបល់ទូទៅ";
   if (type === "feature") {
@@ -252,31 +258,72 @@ function submitFeedback(event) {
     typeKh = "រាយការណ៍បញ្ហា/កំហុស";
   }
   
-  const feedbackText = `📢 ${emoji} *មតិយោបល់ និងការស្នើសុំមុខងារថ្មីៗ*\n\n👤 *ពីសមាជិក៖* ${name}\n🏷️ *ប្រភេទ៖* ${typeKh}\n💬 *ខ្លឹមសារ៖*\n${message}\n\n---`;
+  // HTML escaping helper to prevent Telegram API formatting crash
+  const escapeHTML = (str) => {
+    return str
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
   
-  navigator.clipboard.writeText(feedbackText).then(() => {
-    showToast("📋 ចម្លងមតិយោបល់រួចរាល់! កំពុងបើក Telegram...", "success");
-    
-    if (typeof confetti === 'function') {
-      confetti({
-        particleCount: 80,
-        spread: 60,
-        origin: { y: 0.7 }
-      });
-    }
-    
-    setTimeout(() => {
-      const tgUrl = `tg://share?url=&text=${encodeURIComponent(feedbackText)}`;
-      window.location.href = tgUrl;
+  const feedbackHTML = `📢 ${emoji} <b>មតិយោបល់ និងការស្នើសុំមុខងារថ្មីៗ</b>\n\n👤 <b>ពីសមាជិក៖</b> ${escapeHTML(name)}\n🏷️ <b>ប្រភេទ៖</b> ${typeKh}\n💬 <b>ខ្លឹមសារ៖</b>\n${escapeHTML(message)}\n\n---`;
+  
+  const botToken = "8708347714:AAGfe1ocWu5Q_v6KYWiPgdzJAE0eD_5HEME";
+  const chatId = "109462415";
+  
+  fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      chat_id: chatId,
+      text: feedbackHTML,
+      parse_mode: "HTML"
+    })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.ok) {
+      showToast("🚀 បញ្ជូនមតិយោបល់បានជោគជ័យ! អរគុណសម្រាប់ការគាំទ្រ។", "success");
+      
+      if (typeof confetti === 'function') {
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+      
       closeFeedback();
       const feedbackForm = document.getElementById("feedback-form");
       if (feedbackForm) feedbackForm.reset();
-    }, 800);
-  }).catch(err => {
-    console.error("Failed to copy feedback to clipboard: ", err);
-    showToast("⚠️ មិនអាចចម្លងសារឡើយ ប៉ុន្តែកំពុងបើក Telegram...", "warning");
-    const tgUrl = `tg://share?url=&text=${encodeURIComponent(feedbackText)}`;
-    window.location.href = tgUrl;
+    } else {
+      throw new Error(data.description || "Telegram API Error");
+    }
+  })
+  .catch(err => {
+    console.error("Telegram automated send failed:", err);
+    showToast("⚠️ បញ្ជូនស្វ័យប្រវត្តបរាជ័យ! កំពុងបើក Telegram...", "warning");
+    
+    // Clipboard fallback
+    const fallbackText = `📢 ${emoji} *មតិយោបល់ និងការស្នើសុំមុខងារថ្មីៗ*\n\n👤 *ពីសមាជិក៖* ${name}\n🏷️ *ប្រភេទ៖* ${typeKh}\n💬 *ខ្លឹមសារ៖*\n${message}\n\n---`;
+    
+    navigator.clipboard.writeText(fallbackText).then(() => {
+      setTimeout(() => {
+        const tgUrl = `tg://share?url=&text=${encodeURIComponent(fallbackText)}`;
+        window.location.href = tgUrl;
+        closeFeedback();
+        const feedbackForm = document.getElementById("feedback-form");
+        if (feedbackForm) feedbackForm.reset();
+      }, 1000);
+    });
+  })
+  .finally(() => {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "🚀 បញ្ជូនមតិយោបល់";
+    }
   });
 }
 
