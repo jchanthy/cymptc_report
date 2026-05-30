@@ -266,8 +266,8 @@ function submitFeedback(event) {
     }
     
     setTimeout(() => {
-      const tgUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(feedbackText)}`;
-      window.open(tgUrl, "_blank");
+      const tgUrl = `tg://share?url=&text=${encodeURIComponent(feedbackText)}`;
+      window.location.href = tgUrl;
       closeFeedback();
       const feedbackForm = document.getElementById("feedback-form");
       if (feedbackForm) feedbackForm.reset();
@@ -275,8 +275,8 @@ function submitFeedback(event) {
   }).catch(err => {
     console.error("Failed to copy feedback to clipboard: ", err);
     showToast("⚠️ មិនអាចចម្លងសារឡើយ ប៉ុន្តែកំពុងបើក Telegram...", "warning");
-    const tgUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(feedbackText)}`;
-    window.open(tgUrl, "_blank");
+    const tgUrl = `tg://share?url=&text=${encodeURIComponent(feedbackText)}`;
+    window.location.href = tgUrl;
   });
 }
 
@@ -668,8 +668,8 @@ function submitTelegram() {
   // Delay slightly to let the user read the toast
   setTimeout(() => {
     const plainText = document.getElementById("telegram-preview-text").innerText;
-    const tgUrl = `https://t.me/share/url?url=https://form.gov.kh/688c903ecfc1ef0012aac52b&text=${encodeURIComponent(plainText)}`;
-    window.open(tgUrl, "_blank");
+    const tgUrl = `tg://share?url=&text=${encodeURIComponent(plainText)}`;
+    window.location.href = tgUrl;
     
     // Also log to history manually since it was shared
     saveReportToHistory();

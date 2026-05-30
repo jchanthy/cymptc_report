@@ -413,7 +413,7 @@ select option {
 
 .btn-primary {
   background: linear-gradient(135deg, var(--color-primary), #0077b6);
-  color: #080b11;
+  color: #ffffff;
   box-shadow: 0 4px 15px rgba(72, 202, 228, 0.3);
 }
 
