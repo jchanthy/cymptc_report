@@ -45,6 +45,13 @@
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
+
+        <!-- Feedback & Suggestions Button -->
+        <button class="btn btn-secondary btn-icon" id="open-feedback-btn" title="មតិយោបល់ និងការស្នើសុំមុខងារថ្មីៗ" onclick="openFeedback()">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+        </button>
       </div>
     </header>
 
@@ -461,6 +468,47 @@
           <div class="action-row">
             <button type="button" class="btn btn-secondary" onclick="closeSettings()" style="flex: 1;">បោះបង់</button>
             <button type="submit" class="btn btn-primary" style="flex: 1;">រក្សាទុកការកំណត់</button>
+          </div>
+          
+        </form>
+      </div>
+    </div>
+
+    <!-- Feedback & Suggestions Modal -->
+    <div class="modal-overlay" id="feedback-modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>💬 មតិយោបល់ និងសំណើមុខងារ</h3>
+          <button class="close-btn" onclick="closeFeedback()">&times;</button>
+        </div>
+        
+        <form id="feedback-form" onsubmit="submitFeedback(event)">
+          
+          <div class="form-group">
+            <label for="feedback-name">👤 ឈ្មោះសមាជិក (Your Name)</label>
+            <input type="text" id="feedback-name" placeholder="បញ្ចូលឈ្មោះរបស់អ្នក (ស្រេចចិត្ត)">
+            <small style="color: var(--text-muted); font-size: 0.75rem; margin-top: 4px; display: block;">បញ្ចូលឈ្មោះរបស់អ្នក ឬទុកជាអនាមិកក៏បាន។</small>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback-type">🏷️ ប្រភេទមតិយោបល់ (Feedback Type)</label>
+            <div class="select-wrapper">
+              <select id="feedback-type">
+                <option value="feature">💡 ស្នើសុំមុខងារថ្មី (Suggest a New Feature)</option>
+                <option value="bug">🐞 រាយការណ៍បញ្ហា/កំហុស (Report a Bug/Issue)</option>
+                <option value="general">💬 មតិយោបល់ទូទៅ (General Feedback)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="feedback-message">📝 ខ្លឹមសារមតិយោបល់/សំណើ (Message)</label>
+            <textarea id="feedback-message" placeholder="សូមបញ្ចូលមតិយោបល់ ឬសំណើមុខងាររបស់អ្នកនៅទីនេះ..." rows="5" required></textarea>
+          </div>
+
+          <div class="action-row">
+            <button type="button" class="btn btn-secondary" onclick="closeFeedback()" style="flex: 1;">បោះបង់</button>
+            <button type="submit" class="btn btn-primary" style="flex: 1;">🚀 បញ្ជូនមតិយោបល់</button>
           </div>
           
         </form>

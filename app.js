@@ -209,6 +209,77 @@ function closeSettings() {
   modal.classList.remove("open");
 }
 
+// Setup Feedback Modal Actions
+function openFeedback() {
+  const nameSelect = document.getElementById("reporter-name");
+  const selectedName = nameSelect ? nameSelect.value : "";
+  const feedbackNameInput = document.getElementById("feedback-name");
+  if (feedbackNameInput) {
+    feedbackNameInput.value = selectedName;
+  }
+  const feedbackModal = document.getElementById("feedback-modal");
+  if (feedbackModal) {
+    feedbackModal.classList.add("open");
+  }
+}
+
+function closeFeedback() {
+  const feedbackModal = document.getElementById("feedback-modal");
+  if (feedbackModal) {
+    feedbackModal.classList.remove("open");
+  }
+}
+
+function submitFeedback(event) {
+  event.preventDefault();
+  const name = document.getElementById("feedback-name").value.trim() || "សមាជិក (Member)";
+  const type = document.getElementById("feedback-type").value;
+  const message = document.getElementById("feedback-message").value.trim();
+  
+  if (!message) {
+    showToast("⚠️ សូមបញ្ចូលមតិយោបល់ ឬសំណើមុខងាររបស់អ្នក!", "error");
+    document.getElementById("feedback-message").focus();
+    return;
+  }
+  
+  let emoji = "💬";
+  let typeKh = "មតិយោបល់ទូទៅ";
+  if (type === "feature") {
+    emoji = "💡";
+    typeKh = "ស្នើសុំមុខងារថ្មី";
+  } else if (type === "bug") {
+    emoji = "🐞";
+    typeKh = "រាយការណ៍បញ្ហា/កំហុស";
+  }
+  
+  const feedbackText = `📢 ${emoji} *មតិយោបល់ និងការស្នើសុំមុខងារថ្មីៗ*\n\n👤 *ពីសមាជិក៖* ${name}\n🏷️ *ប្រភេទ៖* ${typeKh}\n💬 *ខ្លឹមសារ៖*\n${message}\n\n---`;
+  
+  navigator.clipboard.writeText(feedbackText).then(() => {
+    showToast("📋 ចម្លងមតិយោបល់រួចរាល់! កំពុងបើក Telegram...", "success");
+    
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 80,
+        spread: 60,
+        origin: { y: 0.7 }
+      });
+    }
+    
+    setTimeout(() => {
+      const tgUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(feedbackText)}`;
+      window.open(tgUrl, "_blank");
+      closeFeedback();
+      const feedbackForm = document.getElementById("feedback-form");
+      if (feedbackForm) feedbackForm.reset();
+    }, 800);
+  }).catch(err => {
+    console.error("Failed to copy feedback to clipboard: ", err);
+    showToast("⚠️ មិនអាចចម្លងសារឡើយ ប៉ុន្តែកំពុងបើក Telegram...", "warning");
+    const tgUrl = `https://t.me/share/url?url=&text=${encodeURIComponent(feedbackText)}`;
+    window.open(tgUrl, "_blank");
+  });
+}
+
 // Handle incremental counter controls
 function adjustCount(inputId, amount) {
   const input = document.getElementById(inputId);
@@ -1215,4 +1286,7 @@ window.toggleScraperEngineFields = toggleScraperEngineFields;
 window.updateScraperInputs = updateScraperInputs;
 window.addUrlInput = addUrlInput;
 window.removeUrlInput = removeUrlInput;
+window.openFeedback = openFeedback;
+window.closeFeedback = closeFeedback;
+window.submitFeedback = submitFeedback;
 
