@@ -22,10 +22,17 @@ app.use(express.json());
 
 // Main scraping endpoint
 app.post('/api/scrape', async (req, res) => {
-  const { url } = req.body;
+  let { url } = req.body;
 
   if (!url) {
     return res.status(400).json({ success: false, error: 'Facebook URL is required.' });
+  }
+
+  // Normalize mobile URLs to desktop web.facebook.com for primary scraping phase
+  if (url.includes('m.facebook.com')) {
+    url = url.replace('m.facebook.com', 'web.facebook.com');
+  } else if (url.includes('mobile.facebook.com')) {
+    url = url.replace('mobile.facebook.com', 'web.facebook.com');
   }
 
   console.log(`\n🚀 Received scrape request for: ${url}`);
@@ -61,7 +68,7 @@ app.post('/api/scrape', async (req, res) => {
     console.log('⏳ Page loaded. Parsing DOM metrics...');
     await page.evaluate(() => new Promise(resolve => setTimeout(resolve, 3000)));
 
-    const isVideo = url.includes('/watch') || url.includes('/videos') || url.includes('fb.watch') || url.includes('?v=') || url.includes('&v=');
+    const isVideo = url.includes('/watch') || url.includes('/videos') || url.includes('fb.watch') || url.includes('?v=') || url.includes('&v=') || url.includes('/reel/') || url.includes('/reels/');
 
     // Extract engagement stats using regular expressions & stable DOM selectors
     const metrics = await page.evaluate((isVideo) => {
@@ -289,30 +296,44 @@ app.post('/api/scrape', async (req, res) => {
           }
         } catch (err) {}
 
-        // 2. Meta Description Scraping Fallback
+        // 2. Meta Scraping Fallback (Checking multiple meta properties)
         try {
-          const descriptionMeta = document.querySelector('meta[property="og:description"]') || document.querySelector('meta[name="description"]');
-          if (descriptionMeta) {
-            const descText = descriptionMeta.getAttribute('content') || '';
-            if (!likes) {
-              const likeMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)/i) ||
-                                descText.match(/(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
-              if (likeMatch) likes = parseNum(likeMatch[1]);
-            }
-            if (!comments) {
-              const commentMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:comments?|មតិយោបល់|មតិ)/i) ||
-                                   descText.match(/(?:comments?|មតិយោបល់|មតិ)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
-              if (commentMatch) comments = parseNum(commentMatch[1]);
-            }
-            if (!shares) {
-              const shareMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:shares?|ការចែករំលែក|ចែករំលែក)/i) ||
-                                 descText.match(/(?:shares?|ការចែករំលែក|ចែករំលែក)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
-              if (shareMatch) shares = parseNum(shareMatch[1]);
-            }
-            if (!views) {
-              const viewMatch = descText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:views?|ទស្សនា|ការទស្សនា)/i) ||
-                                descText.match(/(?:views?|ទស្សនា|ការទស្សនា)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
-              if (viewMatch) views = parseNum(viewMatch[1]);
+          const metaSelectors = [
+            'meta[property="og:description"]',
+            'meta[name="description"]',
+            'meta[property="og:title"]',
+            'meta[name="twitter:title"]',
+            'meta[name="twitter:description"]',
+            'meta[property="og:image:alt"]',
+            'meta[name="twitter:image:alt"]'
+          ];
+          
+          for (const selector of metaSelectors) {
+            const metaEl = document.querySelector(selector);
+            if (metaEl) {
+              const metaText = metaEl.getAttribute('content') || '';
+              if (metaText) {
+                if (!likes) {
+                  const likeMatch = metaText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)/i) ||
+                                    metaText.match(/(?:likes?|reactions?|ចូលចិត្ត|ប្រតិកម្ម)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+                  if (likeMatch) likes = parseNum(likeMatch[1]);
+                }
+                if (!comments) {
+                  const commentMatch = metaText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:comments?|មតិយោបល់|មតិ)/i) ||
+                                       metaText.match(/(?:comments?|មតិយោបល់|មតិ)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+                  if (commentMatch) comments = parseNum(commentMatch[1]);
+                }
+                if (!shares) {
+                  const shareMatch = metaText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:shares?|ការចែករំលែក|ចែករំលែក)/i) ||
+                                     metaText.match(/(?:shares?|ការចែករំលែក|ចែករំលែក)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+                  if (shareMatch) shares = parseNum(shareMatch[1]);
+                }
+                if (!views) {
+                  const viewMatch = metaText.match(/([\d.,]+(?:K|M|ពាន់|លាន)?)\s*(?:views?|ទស្សនា|ការទស្សនា)/i) ||
+                                    metaText.match(/(?:views?|ទស្សនា|ការទស្សនា)\s*([\d.,]+(?:K|M|ពាន់|លាន)?)/i);
+                  if (viewMatch) views = parseNum(viewMatch[1]);
+                }
+              }
             }
           }
         } catch (e) {}
@@ -415,6 +436,39 @@ app.post('/api/scrape', async (req, res) => {
             }
             if (cands.length > 0) shares = Math.max(...cands);
           }
+        }
+
+        // 5. Dedicated Reels DOM Layout & Text Fallback
+        if (!likes || !comments || !shares) {
+          try {
+            const textContent = (document.body ? document.body.innerText : '') || '';
+            const lines = textContent.split('\n').map(l => l.trim()).filter(Boolean);
+            const reelsIdx = lines.findIndex(l => l.toLowerCase() === 'reels');
+            if (reelsIdx !== -1) {
+              const candidates = [];
+              for (let i = reelsIdx - 1; i >= 0 && i >= reelsIdx - 3; i--) {
+                const line = lines[i];
+                if (/^[\d.,]+(K|M|ពាន់|លាន)?$/i.test(line)) {
+                  candidates.unshift(parseNum(line));
+                } else {
+                  break;
+                }
+              }
+              
+              if (candidates.length > 0) {
+                if (candidates.length === 3) {
+                  if (!likes) likes = candidates[0];
+                  if (!comments) comments = candidates[1];
+                  if (!shares) shares = candidates[2];
+                } else if (candidates.length === 2) {
+                  if (!likes) likes = candidates[0];
+                  if (!comments) comments = candidates[1];
+                } else if (candidates.length === 1) {
+                  if (!likes) likes = candidates[0];
+                }
+              }
+            }
+          } catch (e) {}
         }
 
         return { likes, comments, shares, views };
